@@ -97,6 +97,12 @@ VERTEX_COORDS = {
     52: (2.598, 3.5), 53: (1.732, 4.0),
 }
 
+# The set of all valid vertex IDs, derived from TILE_VERTICES — the actual
+# source of truth for board topology. (VERTEX_COORDS happens to share the
+# same keys today, but it's a drawing-only table, not the topology itself,
+# so gameplay code should never read vertex validity from it.)
+ALL_VERTICES = frozenset(v for verts in TILE_VERTICES.values() for v in verts)
+
 
 class Player:
     def __init__(self, color):
@@ -132,8 +138,9 @@ class Board:
     """
 
     def __init__(self):
-        self.vertices = dict(VERTEX_COORDS)  # vertex_id -> (x, y), fixed
-        self.edges = set(EDGES)              # fixed set of (v1, v2) pairs
+        self.vertices = set(ALL_VERTICES)          # the 54 valid vertex IDs
+        self.vertex_coords = dict(VERTEX_COORDS)   # vertex_id -> (x, y), for drawing only
+        self.edges = set(EDGES)                    # fixed set of (v1, v2) pairs
         self.tiles = self._generate_tiles()
         self.settlements = {}  # vertex_id -> Player
         self.cities = {}       # vertex_id -> Player
@@ -301,7 +308,7 @@ if __name__ == "__main__":
     print("\n=== STARTING PURE-PYTHON CATAN ===")
 
     # Simulate 5 turns
-    all_vertex_ids = list(game.board.vertices.keys())
+    all_vertex_ids = list(game.board.vertices)
     for turn in range(5):
         current_p = game.players[game.current_player_idx]
         print(f"\n--- Turn {game.turn + 1}: {current_p.color}'s Turn ---")
