@@ -12,7 +12,7 @@ HEX_RESOURCE_MAP = {
     "MOUNTAINS": "ORE",
     "DESERT": None
 }
-
+ 
 BUILDING_COSTS = {
     "ROAD": {"WOOD": 1, "BRICK": 1},
     "SETTLEMENT": {"WOOD": 1, "BRICK": 1, "SHEEP": 1, "WHEAT": 1},
