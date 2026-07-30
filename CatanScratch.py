@@ -1,5 +1,5 @@
 import random
-'''test push'''
+'''test push for will branch'''
 # Core Constants
 RESOURCES = ["WOOD", "BRICK", "SHEEP", "WHEAT", "ORE"]
 HEX_TYPES = ["FOREST", "HILLS", "PASTURE", "FIELDS", "MOUNTAINS", "DESERT"]
