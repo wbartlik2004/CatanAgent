@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     print("\n=== STARTING PURE-PYTHON CATAN ===")
 
-    # Simulate 5 turns
+    # Simulate 5 turns change into a while not won loop
     all_vertex_ids = list(game.board.vertices)
     for turn in range(5):
         current_p = game.players[game.current_player_idx]
@@ -168,16 +168,6 @@ if __name__ == "__main__":
         # Display current resources
         res_summary = ", ".join([f"{k}: {v}" for k, v in current_p.resources.items() if v > 0])
         print(f"  {current_p.color} hand: {res_summary if res_summary else 'Empty'}")
-
-        # Try to build if possible, on an actual free vertex from the board
-        if current_p.can_afford("SETTLEMENT"):
-            free_vertex = next(
-                (v for v in all_vertex_ids
-                 if v not in game.board.settlements and v not in game.board.cities),
-                None
-            )
-            if free_vertex is not None:
-                game.build_settlement(current_p, vertex_id=free_vertex)
 
         game.next_turn()
     game.print_board_summary()
