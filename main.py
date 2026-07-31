@@ -22,17 +22,51 @@ BUILDING_COSTS = {
     "CITY": {"WHEAT": 2, "ORE": 3}
 }
 
-# ---------------------------------------------------------------------------
-# HARDCODED BOARD TOPOLOGY
-# ---------------------------------------------------------------------------
-# The physical layout of a Catan board (which vertices belong to which tile,
-# which vertices are connected by an edge, tile positions) never changes —
-# only the resource types and dice numbers get shuffled each game. So instead
-# of recomputing hex geometry with floating point trig every run, that
-# topology was generated once (radius-2 axial hex grid, pointy-top hexes,
-# snapping shared corners together) and is baked in below as static tables.
-# Tile IDs run 0-18 in the classic row order (rows of 3, 4, 5, 4, 3, top to
-# bottom, left to right). Vertex IDs run 0-53. Edges are just (v1, v2) pairs.
+DEV_CARD_COSTS = {"SHEEP": 1, "WHEAT": 1, "ORE": 1}
+
+# Standard 25-card development deck composition.
+DEV_CARD_DECK = {
+    "KNIGHT": 14,
+    "VICTORY_POINT": 5,
+    "ROAD_BUILDING": 2,
+    "YEAR_OF_PLENTY": 2,
+    "MONOPOLY": 2,
+}
+
+# Per-player piece limits (the physical supply each player has to build with).
+PIECE_LIMITS = {
+    "ROAD": 15,
+    "SETTLEMENT": 5,
+    "CITY": 4,
+}
+
+# Bonus thresholds.
+LONGEST_ROAD_MIN_LENGTH = 5      # min road length to claim "Longest Road" (+2 VP)
+LARGEST_ARMY_MIN_KNIGHTS = 3     # min knights played to claim "Largest Army" (+2 VP)
+
+# --- Ports / trading ---
+PORT_TYPES = ["GENERIC", "WOOD", "BRICK", "SHEEP", "WHEAT", "ORE"]
+
+BANK_TRADE_RATIO = 4  # default trade-with-the-bank ratio (no port): 4:1
+
+PORT_TRADE_RATIOS = {
+    "GENERIC": 3,  # 3:1 at a generic port
+    "WOOD": 2,     # 2:1 at a resource-specific port
+    "BRICK": 2,
+    "SHEEP": 2,
+    "WHEAT": 2,
+    "ORE": 2,
+}
+
+# Standard board has 9 ports total: 4 generic (3:1) + 5 resource-specific (2:1).
+PORT_COUNTS = {
+    "GENERIC": 4,
+    "WOOD": 1,
+    "BRICK": 1,
+    "SHEEP": 1,
+    "WHEAT": 1,
+    "ORE": 1,
+}
 
 # tile_id -> (q, r) axial coordinate of that tile's hex center.
 # Not needed for gameplay, only for drawing/reference.
