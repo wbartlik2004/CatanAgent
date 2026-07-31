@@ -164,6 +164,8 @@ if __name__ == "__main__":
 
         # Roll dice
         game.roll_dice()
+        
+        #game.player_actions(current_p)  
 
         # Display current resources
         res_summary = ", ".join([f"{k}: {v}" for k, v in current_p.resources.items() if v > 0])
