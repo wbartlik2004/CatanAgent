@@ -1,5 +1,5 @@
 import random
-'''test push for will branch'''
+
 # Core Constants
 RESOURCES = ["WOOD", "BRICK", "SHEEP", "WHEAT", "ORE"]
 HEX_TYPES = ["FOREST", "HILLS", "PASTURE", "FIELDS", "MOUNTAINS", "DESERT"]
@@ -101,7 +101,7 @@ VERTEX_COORDS = {
 # source of truth for board topology. (VERTEX_COORDS happens to share the
 # same keys today, but it's a drawing-only table, not the topology itself,
 # so gameplay code should never read vertex validity from it.)
-ALL_VERTICES = frozenset(v for verts in TILE_VERTICES.values() for v in verts)
+ALL_VERTICES = frozenset(v for verts in TILE_VERTICES.values() for v in verts) # TILE VERTICES becomes ALL_VERTICES
 
 
 class Player:
