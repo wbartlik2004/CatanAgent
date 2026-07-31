@@ -1,4 +1,4 @@
-from RunGame import RESOURCES, BUILDING_COSTS
+from main import RESOURCES, BUILDING_COSTS
 
 class Player:
     def __init__(self, color):
