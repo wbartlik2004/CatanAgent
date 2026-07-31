@@ -43,6 +43,13 @@ class CatanGame:
             if p.victory_points >= 10:
                 return p
         return None
+    
+    def player_action(self, player):
+        # Placeholder for player actions (building, trading, etc.)
+        #player.action(boardstate info)
+        #make another function to check over player actions and see if they can build or trade
+        #I'm assuming the player.action function will return a string that can parsed
+        pass
 
     def print_board_summary(self):
         """Prints a detailed breakdown of all tiles and buildings on the board."""
