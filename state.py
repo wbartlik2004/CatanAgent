@@ -133,7 +133,32 @@ class GameState:
                 return p
         return None
 
+    def chance_outcomes(self):
+        """
+        Going to need to handle chance outcomes.
+        Whenever MCTS rollout gets to a chance node, we could just have it choose from the probability
+        distribution of choices
+        Eg: picking a random steal from an opponent with hand w, w, w, b, o, : {w: .6, b: .2, o: .2}
+        But needs to be fed said prob dist
+        """
 
+
+    def victory_points():
+        """
+        Going to need to calculate victory points.
+        Could store and add when a new one is achieved (but then subtract if loses longest road/largest army)
+        Could just calculate based off a given state:
+        Eg. if player a has 2 settlements, 3 cities, and longest road, that can all be grabbed from state
+        or if player b has 3 cities, 2 vp devs, 1 settlement, and gets longest road, we can calculate at end of turn
+        """
+        pass
+
+
+    def initial_state():
+        """
+
+        """
+        pass
 
 
 
