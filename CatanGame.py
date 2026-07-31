@@ -3,7 +3,7 @@ from Player import Player
 from board import Board
 
 class CatanGame:
-    def __init__(self, colors=["RED", "BLUE", "WHITE", "ORANGE"]):
+    def __init__(self, colors=["RED", "BLUE", "WHITE", "GREEN"]):
         self.board = Board()
         self.players = [Player(c) for c in colors]
         self.turn = 0
@@ -15,7 +15,7 @@ class CatanGame:
         print(f"\n🎲 Rolled {d1} + {d2} = {total}")
 
         if total == 7:
-            print("🚨 7 Rolled! Robber activated.")
+            print("🚨 7 Rolled! Robber activated.") #turn this into a RobberPlacement Function
         else:
             self._distribute_resources(total)
         return total
