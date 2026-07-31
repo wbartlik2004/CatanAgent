@@ -22,17 +22,51 @@ BUILDING_COSTS = {
     "CITY": {"WHEAT": 2, "ORE": 3}
 }
 
-# ---------------------------------------------------------------------------
-# HARDCODED BOARD TOPOLOGY
-# ---------------------------------------------------------------------------
-# The physical layout of a Catan board (which vertices belong to which tile,
-# which vertices are connected by an edge, tile positions) never changes —
-# only the resource types and dice numbers get shuffled each game. So instead
-# of recomputing hex geometry with floating point trig every run, that
-# topology was generated once (radius-2 axial hex grid, pointy-top hexes,
-# snapping shared corners together) and is baked in below as static tables.
-# Tile IDs run 0-18 in the classic row order (rows of 3, 4, 5, 4, 3, top to
-# bottom, left to right). Vertex IDs run 0-53. Edges are just (v1, v2) pairs.
+DEV_CARD_COSTS = {"SHEEP": 1, "WHEAT": 1, "ORE": 1}
+
+# Standard 25-card development deck composition.
+DEV_CARD_DECK = {
+    "KNIGHT": 14,
+    "VICTORY_POINT": 5,
+    "ROAD_BUILDING": 2,
+    "YEAR_OF_PLENTY": 2,
+    "MONOPOLY": 2,
+}
+
+# Per-player piece limits (the physical supply each player has to build with).
+PIECE_LIMITS = {
+    "ROAD": 15,
+    "SETTLEMENT": 5,
+    "CITY": 4,
+}
+
+# Bonus thresholds.
+LONGEST_ROAD_MIN_LENGTH = 5      # min road length to claim "Longest Road" (+2 VP)
+LARGEST_ARMY_MIN_KNIGHTS = 3     # min knights played to claim "Largest Army" (+2 VP)
+
+# --- Ports / trading ---
+PORT_TYPES = ["GENERIC", "WOOD", "BRICK", "SHEEP", "WHEAT", "ORE"]
+
+BANK_TRADE_RATIO = 4  # default trade-with-the-bank ratio (no port): 4:1
+
+PORT_TRADE_RATIOS = {
+    "GENERIC": 3,  # 3:1 at a generic port
+    "WOOD": 2,     # 2:1 at a resource-specific port
+    "BRICK": 2,
+    "SHEEP": 2,
+    "WHEAT": 2,
+    "ORE": 2,
+}
+
+# Standard board has 9 ports total: 4 generic (3:1) + 5 resource-specific (2:1).
+PORT_COUNTS = {
+    "GENERIC": 4,
+    "WOOD": 1,
+    "BRICK": 1,
+    "SHEEP": 1,
+    "WHEAT": 1,
+    "ORE": 1,
+}
 
 # tile_id -> (q, r) axial coordinate of that tile's hex center.
 # Not needed for gameplay, only for drawing/reference.
@@ -46,24 +80,15 @@ TILE_AXIAL = {
 
 # tile_id -> the 6 vertex IDs at that tile's corners, in consistent order.
 TILE_VERTICES = {
-    0: (0, 1, 2, 3, 4, 5),
-    1: (6, 7, 8, 1, 0, 9),
-    2: (10, 11, 12, 7, 6, 13),
-    3: (2, 14, 15, 16, 17, 3),
-    4: (8, 18, 19, 14, 2, 1),
-    5: (12, 20, 21, 18, 8, 7),
-    6: (22, 23, 24, 20, 12, 11),
-    7: (15, 25, 26, 27, 28, 16),
-    8: (19, 29, 30, 25, 15, 14),
-    9: (21, 31, 32, 29, 19, 18),
-    10: (24, 33, 34, 31, 21, 20),
-    11: (35, 36, 37, 33, 24, 23),
-    12: (30, 38, 39, 40, 26, 25),
-    13: (32, 41, 42, 38, 30, 29),
-    14: (34, 43, 44, 41, 32, 31),
-    15: (37, 45, 46, 43, 34, 33),
-    16: (42, 47, 48, 49, 39, 38),
-    17: (44, 50, 51, 47, 42, 41),
+    0: (0, 1, 2, 3, 4, 5), 1: (6, 7, 8, 1, 0, 9),
+    2: (10, 11, 12, 7, 6, 13), 3: (2, 14, 15, 16, 17, 3),
+    4: (8, 18, 19, 14, 2, 1), 5: (12, 20, 21, 18, 8, 7),
+    6: (22, 23, 24, 20, 12, 11), 7: (15, 25, 26, 27, 28, 16),
+    8: (19, 29, 30, 25, 15, 14), 9: (21, 31, 32, 29, 19, 18),
+    10: (24, 33, 34, 31, 21, 20), 11: (35, 36, 37, 33, 24, 23),
+    12: (30, 38, 39, 40, 26, 25), 13: (32, 41, 42, 38, 30, 29),
+    14: (34, 43, 44, 41, 32, 31), 15: (37, 45, 46, 43, 34, 33),
+    16: (42, 47, 48, 49, 39, 38), 17: (44, 50, 51, 47, 42, 41),
     18: (46, 52, 53, 50, 44, 43),
 }
 
@@ -106,8 +131,6 @@ VERTEX_COORDS = {
 # so gameplay code should never read vertex validity from it.)
 ALL_VERTICES = frozenset(v for verts in TILE_VERTICES.values() for v in verts) # TILE VERTICES becomes ALL_VERTICES
 
-
-
 # --- SAMPLE GAMEPLAY LOOP ---
 if __name__ == "__main__":
     game = CatanGame()
@@ -133,7 +156,7 @@ if __name__ == "__main__":
 
     print("\n=== STARTING PURE-PYTHON CATAN ===")
 
-    # Simulate 5 turns
+    # Simulate 5 turns change into a while not won loop
     all_vertex_ids = list(game.board.vertices)
     for turn in range(5):
         current_p = game.players[game.current_player_idx]
@@ -141,20 +164,12 @@ if __name__ == "__main__":
 
         # Roll dice
         game.roll_dice()
+        
+        #game.player_actions(current_p)  
 
         # Display current resources
         res_summary = ", ".join([f"{k}: {v}" for k, v in current_p.resources.items() if v > 0])
         print(f"  {current_p.color} hand: {res_summary if res_summary else 'Empty'}")
-
-        # Try to build if possible, on an actual free vertex from the board
-        if current_p.can_afford("SETTLEMENT"):
-            free_vertex = next(
-                (v for v in all_vertex_ids
-                 if v not in game.board.settlements and v not in game.board.cities),
-                None
-            )
-            if free_vertex is not None:
-                game.build_settlement(current_p, vertex_id=free_vertex)
 
         game.next_turn()
     game.print_board_summary()

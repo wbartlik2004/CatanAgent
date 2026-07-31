@@ -3,7 +3,7 @@ from Player import Player
 from board import Board
 
 class CatanGame:
-    def __init__(self, colors=["RED", "BLUE", "WHITE", "ORANGE"]):
+    def __init__(self, colors=["RED", "BLUE", "WHITE", "GREEN"]):
         self.board = Board()
         self.players = [Player(c) for c in colors]
         self.turn = 0
@@ -15,7 +15,7 @@ class CatanGame:
         print(f"\n🎲 Rolled {d1} + {d2} = {total}")
 
         if total == 7:
-            print("🚨 7 Rolled! Robber activated.")
+            print("🚨 7 Rolled! Robber activated.") #turn this into a RobberPlacement Function
         else:
             self._distribute_resources(total)
         return total
@@ -34,21 +34,6 @@ class CatanGame:
                         player.resources[res] += 2
                         print(f"  --> {player.color} gained 2 {res} from Tile {tile['id']}")
 
-    def build_settlement(self, player, vertex_id):
-        if vertex_id in self.board.settlements or vertex_id in self.board.cities:
-            print(f"❌ Vertex {vertex_id} is already occupied!")
-            return False
-
-        if player.pay("SETTLEMENT"):
-            self.board.settlements[vertex_id] = player
-            player.settlements.append(vertex_id)
-            player.victory_points += 1
-            print(f"🏠 {player.color} built a Settlement at vertex {vertex_id}! (VPs: {player.victory_points})")
-            return True
-        else:
-            print(f"❌ {player.color} doesn't have enough resources for a Settlement.")
-            return False
-
     def next_turn(self):
         self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
         self.turn += 1
@@ -58,6 +43,13 @@ class CatanGame:
             if p.victory_points >= 10:
                 return p
         return None
+    
+    def player_action(self, player):
+        # Placeholder for player actions (building, trading, etc.)
+        #player.action(boardstate info)
+        #make another function to check over player actions and see if they can build or trade
+        #I'm assuming the player.action function will return a string that can parsed
+        pass
 
     def print_board_summary(self):
         """Prints a detailed breakdown of all tiles and buildings on the board."""
