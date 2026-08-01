@@ -18,3 +18,19 @@ Bank only trading
 NEED game state/action interface so agents can decide X at state Y:
 current_player, legal_actions, do(action), copy() (for search alg state expansion), is_terminal_state( boolean ), winner() (for assigning reward values to moves)
 
+
+state.py
+    class GameState:
+        __init__(...)        # the fields, unchanged
+        copy(self)           # return copy.deepcopy(self)
+    # constants (RESOURCES, phases, costs) stay here or in constants.py
+
+state_functions.py
+    initial_state(board, n)
+    current_player(state) / is_chance_node(state) / is_terminal(state) / winner(state)
+    victory_points(state, p) + assoc
+    legal_actions(state)
+    chance_outcomes(state)
+    apply_action(state, action)       # mutates; caller copied first
+        _build_settlement / _build_road / _pay / _move_robber / _recompute_* / _end_turn
+
