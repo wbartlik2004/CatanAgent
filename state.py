@@ -1,5 +1,7 @@
 import copy
 import random
+from topologyhelpers import _distance_rule_ok, _edges_at_vertex, _canon_edge, _vertex_neighbors, _player_road_vertices, _settlement_connected, _road_connected, _is_occupied, _tile_vertices
+
  
 ### CONSTANTS ###
 # resource/dev card types to key player hands; hand[player]["resource"]
@@ -172,7 +174,7 @@ class GameState:
             return list(range(self.n))
         return [(perspective_player + i) % self.n for i in range(self.n)]
     
-     def to_vector(self, perspective_player=None):
+    def to_vector(self, perspective_player=None):
         """
         Flattens this GameState into one fixed-length list of floats:
             - per tile:   resource one-hot (WOOD/BRICK/SHEEP/WHEAT/ORE/NONE), dice number, robber-here flag
@@ -247,7 +249,7 @@ class GameState:
         assert len(vec) == expected, f"to_vector length mismatch: got {len(vec)}, expected {expected}"
         return vec
     
-     def legal_actions(self):
+    def legal_actions(self):
         """
         NEED A LOT OF STUFF IN HERE;; ENUMERATE ALL LEGAL MOVES AT PHASE X FOR AGENTS
         """
@@ -277,7 +279,7 @@ class GameState:
             return []
         raise ValueError(f"Unknown phase: {self.phase}")
     
-     def apply(self, action):
+    def apply(self, action):
         """
         Will take in GAME STATE X, AGENT (OR NON_AGENT in case of chance node) ACTION Y
         Returns NEW GAME STATE S
@@ -312,4 +314,50 @@ class GameState:
  
         return s
     
-    
+    '''settlement/road setup helpers'''
+    @staticmethod
+    def _build_setup_order(n_players):
+        # standard Catan snake draft: 0,1,...,n-1, n-1,...,1,0
+        forward = list(range(n_players))
+        return forward + list(reversed(forward))
+ 
+    def _legal_setup_settlement(self):
+        free_vertices = [v for v in self.board.vertices if _distance_rule_ok(self, v)]
+        return [{"type": "BUILD_SETTLEMENT", "vertex": v} for v in free_vertices]
+ 
+    def _apply_setup_settlement(self, action):
+        v = action["vertex"]
+        p = self.setup_order[self.setup_index]
+        self.settlements[v] = p
+        self.last_setup_vertex = v
+ 
+        # second settlement of setup grants starting resources (standard rule)
+        is_second_pass = self.setup_index >= self.n
+        if is_second_pass:
+            for tile in self.board.tiles:
+                if v in tile["vertices"] and tile["resource"]:
+                    self.hands[p][tile["resource"]] += 1
+ 
+        self.phase = SETUP_ROAD
+ 
+    def _legal_setup_road(self):
+        v = self.last_setup_vertex
+        options = []
+        for e in _edges_at_vertex(self,v):
+            if e not in self.roads:
+                options.append({"type": "BUILD_ROAD", "edge": e})
+        return options
+ 
+    def _apply_setup_road(self, action):
+        p = self.setup_order[self.setup_index]
+        e = _canon_edge(self, *action["edge"])
+        self.roads[e] = p
+ 
+        self.setup_index += 1
+        if self.setup_index >= len(self.setup_order):
+            # setup complete, real game begins with player 0's roll
+            self.current = 0
+            self.phase = ROLL
+        else:
+            self.current = self.setup_order[self.setup_index]
+            self.phase = SETUP_SETTLEMENT    
