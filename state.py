@@ -84,7 +84,7 @@ class GameState:
  
         self.dev_deck = dict(DEV_DECK_COUNTS)
         self.dev_hands = [{d: 0 for d in DEV_TYPES} for _ in range(n_players)]
-        self.dev_bought_this_turn = []   #
+        self.dev_bought_this_turn = []   
         self.dev_played_this_turn = False
         self.knights_played = [0] * n_players
  
@@ -94,10 +94,9 @@ class GameState:
         self.last_roll = None
         self.discards_needed = [0] * n_players
  
-        # --- additional bookkeeping fields needed to make the phase machine work ---
         self.pending_discards = []       # queue of player indices still owing a discard
         self.free_roads_remaining = 0    # counts down during ROAD_BUILDING dev card
-        self.setup_order = self._build_setup_order(n_players)  # snake draft: 0..n-1, n-1..0
+        self.setup_order = self._build_setup_order(n_players)  # snake draft
         self.setup_index = 0             # position within setup_order
         self.last_setup_vertex = None    # vertex just placed, so SETUP_ROAD knows what to attach to
         self.robber_victim_pending = None  # set by MOVE_ROBBER when a steal is owed, consumed by STEAL
@@ -172,3 +171,145 @@ class GameState:
         if perspective_player is None:
             return list(range(self.n))
         return [(perspective_player + i) % self.n for i in range(self.n)]
+    
+     def to_vector(self, perspective_player=None):
+        """
+        Flattens this GameState into one fixed-length list of floats:
+            - per tile:   resource one-hot (WOOD/BRICK/SHEEP/WHEAT/ORE/NONE), dice number, robber-here flag
+            - per vertex: NONE / SETTLEMENT-by-player / CITY-by-player one-hot
+            - per edge:   NONE / road-owner-by-player one-hot
+            - per player: resource hand, dev card hand, victory points, knights played, longest-road flag, largest-army flag
+            - global:     last dice roll, current-player one-hot, phase one-hot, remaining dev deck counts
+        Computed fresh from live state every call (board/settlements/hands/
+        etc.) -- nothing here is cached, so it's always consistent with
+        whatever GameState it's called on. If `perspective_player` is given, every per-player block (vertices,
+        edges, per-player stats, current-player one-hot) is reordered so that player's data comes first, in turn order from there. Leave it
+        None for a fixed, absolute seat-0..seat-(n-1) ordering instead. Output is raw, unnormalized floats/0-1 flags -- scale before feeding
+        into a model that expects normalized inputs. Length is deterministic for a given self.n; see vector_length(n) to get it without building
+        a vector. """
+        
+        order = self._player_order(perspective_player)
+        vec = []
+ 
+        # --- tiles ---
+        for tile in self.board.tiles:
+            resource = tile["resource"] if tile["resource"] else "NONE"
+            for cat in TILE_RESOURCE_CATEGORIES:
+                vec.append(1.0 if cat == resource else 0.0)
+            vec.append(float(tile["number"] or 0))
+            vec.append(1.0 if tile["id"] == self.robber_tile else 0.0)
+ 
+        # --- vertices ---
+        for v in sorted(self.board.vertices):
+            owner, building = None, None
+            if v in self.cities:
+                owner, building = self.cities[v], "CITY"
+            elif v in self.settlements:
+                owner, building = self.settlements[v], "SETTLEMENT"
+ 
+            vec.append(1.0 if owner is None else 0.0)
+            for p in order:
+                vec.append(1.0 if (owner == p and building == "SETTLEMENT") else 0.0)
+            for p in order:
+                vec.append(1.0 if (owner == p and building == "CITY") else 0.0)
+ 
+        # --- edges ---
+        for e in sorted(self.board.edges):
+            owner = self.roads.get(e)
+            vec.append(1.0 if owner is None else 0.0)
+            for p in order:
+                vec.append(1.0 if owner == p else 0.0)
+ 
+        # --- per-player stats, in (possibly rotated) order ---
+        for p in order:
+            hand = self.hands[p]
+            for r in RESOURCES:
+                vec.append(float(hand[r]))
+            dev_hand = self.dev_hands[p]
+            for d in DEV_TYPES:
+                vec.append(float(dev_hand[d]))
+            vec.append(float(self.victory_points(p)))
+            vec.append(float(self.knights_played[p]))
+            vec.append(1.0 if self.longest_road_holder == p else 0.0)
+            vec.append(1.0 if self.largest_army_holder == p else 0.0)
+ 
+        # --- global scalars ---
+        vec.append(float(self.last_roll or 0))
+        current = self.current_player()
+        for p in order:
+            vec.append(1.0 if p == current else 0.0)
+        for ph in ALL_PHASES:
+            vec.append(1.0 if self.phase == ph else 0.0)
+        for d in DEV_TYPES:
+            vec.append(float(self.dev_deck[d]))
+ 
+        expected = self.vector_length(self.n)
+        assert len(vec) == expected, f"to_vector length mismatch: got {len(vec)}, expected {expected}"
+        return vec
+    
+     def legal_actions(self):
+        """
+        NEED A LOT OF STUFF IN HERE;; ENUMERATE ALL LEGAL MOVES AT PHASE X FOR AGENTS
+        """
+        if self.phase == SETUP_SETTLEMENT:
+            return self._legal_setup_settlement()
+        if self.phase == SETUP_ROAD:
+            return self._legal_setup_road()
+        if self.phase == ROLL:
+            return self._legal_roll()
+        if self.phase == DISCARD:
+            return self._legal_discard()
+        if self.phase == MOVE_ROBBER:
+            return self._legal_move_robber()
+        if self.phase == STEAL:
+            return self._legal_steal()
+        if self.phase == MAIN:
+            return self._legal_main()
+        if self.phase == DEV_DRAW:
+            return self._legal_dev_draw()
+        if self.phase == ROAD_BUILDING:
+            return self._legal_road_building()
+        if self.phase == YEAR_OF_PLENTY:
+            return self._legal_year_of_plenty()
+        if self.phase == MONOPOLY:
+            return self._legal_monopoly()
+        if self.phase == GAME_OVER:
+            return []
+        raise ValueError(f"Unknown phase: {self.phase}")
+    
+     def apply(self, action):
+        """
+        Will take in GAME STATE X, AGENT (OR NON_AGENT in case of chance node) ACTION Y
+        Returns NEW GAME STATE S
+        To be used at each agent decision point
+        """
+        s = copy.deepcopy(self)
+ 
+        if s.phase == SETUP_SETTLEMENT:
+            s._apply_setup_settlement(action)
+        elif s.phase == SETUP_ROAD:
+            s._apply_setup_road(action)
+        elif s.phase == ROLL:
+            s._apply_roll(action)
+        elif s.phase == DISCARD:
+            s._apply_discard(action)
+        elif s.phase == MOVE_ROBBER:
+            s._apply_move_robber(action)
+        elif s.phase == STEAL:
+            s._apply_steal(action)
+        elif s.phase == MAIN:
+            s._apply_main(action)
+        elif s.phase == DEV_DRAW:
+            s._apply_dev_draw(action)
+        elif s.phase == ROAD_BUILDING:
+            s._apply_road_building(action)
+        elif s.phase == YEAR_OF_PLENTY:
+            s._apply_year_of_plenty(action)
+        elif s.phase == MONOPOLY:
+            s._apply_monopoly(action)
+        else:
+            raise ValueError(f"Unknown phase: {s.phase}")
+ 
+        return s
+    
+    
