@@ -361,3 +361,136 @@ class GameState:
         else:
             self.current = self.setup_order[self.setup_index]
             self.phase = SETUP_SETTLEMENT    
+            
+    '''Post Roll'''
+    def _legal_roll(self):
+        # chance node: the "actions" are the possible dice totals with their probabilities
+        return [{"type": "ROLL_RESULT", "value": v, "prob": p} for v, p in DICE_PROB.items()]
+ 
+    def _apply_roll(self, action):
+        total = action["value"]
+        self.last_roll = total
+ 
+        if total == 7:
+            self._start_discard_phase()
+        else:
+            self._distribute_resources(total)
+            self.phase = MAIN
+ 
+    def _distribute_resources(self, roll):
+        for tile in self.board.tiles:
+            if tile["number"] != roll or not tile["resource"] or tile["id"] == self.robber_tile:
+                continue
+            res = tile["resource"]
+            for v in tile["vertices"]:
+                if v in self.settlements:
+                    self.hands[self.settlements[v]][res] += 1
+                elif v in self.cities:
+                    self.hands[self.cities[v]][res] += 2
+ 
+    def _start_discard_phase(self):
+        self.discards_needed = [0] * self.n
+        self.pending_discards = []
+        for p in range(self.n):
+            total = sum(self.hands[p].values())
+            if total > DISCARD_LIMIT:
+                self.discards_needed[p] = total // 2
+                self.pending_discards.append(p)
+        if self.pending_discards:
+            self.phase = DISCARD
+        else:
+            self.phase = MOVE_ROBBER
+            
+    '''Discarding'''
+    def _enumerate_discards(self, hand, need):
+        """All ways to pick exactly `need` cards total from `hand`, as
+        {resource: count} dicts (only nonzero counts included). Small
+        search space at Catan's scale (5 resource types, need <= ~10)."""
+        results = []
+ 
+        def backtrack(idx, remaining, chosen):
+            if remaining == 0:
+                results.append({r: c for r, c in chosen.items() if c > 0})
+                return
+            if idx == len(RESOURCES):
+                return
+            r = RESOURCES[idx]
+            max_take = min(hand[r], remaining)
+            for take in range(max_take + 1):
+                chosen[r] = take
+                backtrack(idx + 1, remaining - take, chosen)
+            chosen[r] = 0
+ 
+        backtrack(0, need, {r: 0 for r in RESOURCES})
+        return results
+ 
+    def _legal_discard(self):
+        p = self.current_player()
+        need = self.discards_needed[p]
+        hand = self.hands[p]
+        combos = self._enumerate_discards(hand, need)
+        return [{"type": "DISCARD", "player": p, "resources": combo} for combo in combos]
+ 
+    def _apply_discard(self, action):
+        p = action["player"]
+        to_discard = action["resources"]
+        if to_discard is None:
+            raise ValueError("DISCARD action must specify a concrete {resource: count} dict")
+        needed = self.discards_needed[p]
+        if sum(to_discard.values()) != needed:
+            raise ValueError(f"Player {p} must discard exactly {needed} cards")
+        for r, qty in to_discard.items():
+            if self.hands[p][r] < qty:
+                raise ValueError(f"Player {p} does not have {qty} {r} to discard")
+            self.hands[p][r] -= qty
+ 
+        self.discards_needed[p] = 0
+        self.pending_discards.pop(0)
+        if not self.pending_discards:
+            self.phase = MOVE_ROBBER
+ 
+    '''moving robber/stealing'''
+    def _legal_move_robber(self):
+        options = []
+        for tile in self.board.tiles:
+            if tile["id"] == self.robber_tile:
+                continue
+            victims = set()
+            for v in tile["vertices"]:
+                owner = self.settlements.get(v, self.cities.get(v))
+                if owner is not None and owner != self.current:
+                    victims.add(owner)
+            if victims:
+                for victim in victims:
+                    options.append({"type": "MOVE_ROBBER", "tile": tile["id"], "victim": victim})
+            else:
+                options.append({"type": "MOVE_ROBBER", "tile": tile["id"], "victim": None})
+        return options
+ 
+    def _apply_move_robber(self, action):
+        self.robber_tile = action["tile"]
+        victim = action["victim"]
+        if victim is not None and sum(self.hands[victim].values()) > 0:
+            self.robber_victim_pending = victim
+            self.phase = STEAL
+        else:
+            self.robber_victim_pending = None
+            self.phase = MAIN
+ 
+    def _legal_steal(self):
+        victim = self.robber_victim_pending
+        hand = self.hands[victim]
+        total = sum(hand.values())
+        if total == 0:
+            return []
+        return [{"type": "STEAL_RESULT", "resource": r, "prob": qty / total}
+                for r, qty in hand.items() if qty > 0]
+ 
+    def _apply_steal(self, action):
+        victim = self.robber_victim_pending
+        r = action["resource"]
+        self.hands[victim][r] -= 1
+        self.hands[self.current][r] += 1
+        self.robber_victim_pending = None
+        self.phase = MAIN
+ 
