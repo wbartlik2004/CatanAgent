@@ -11,3 +11,10 @@ tests/       # topology, rules, determinism
 main.py      # game sim
 docs/        # design notes, code review
 
+
+N-player capable code, 2-player eval/training?
+Bank only trading
+
+NEED game state/action interface so agents can decide X at state Y:
+current_player, legal_actions, do(action), copy() (for search alg state expansion), is_terminal_state( boolean ), winner() (for assigning reward values to moves)
+
