@@ -686,3 +686,86 @@ class GameState:
         self._update_longest_road()
         if self.free_roads_remaining <= 0:
             self.phase = MAIN
+            
+     # -----------------------------------------------------------------
+    # (kept for interface completeness; YEAR_OF_PLENTY/MONOPOLY are
+    # currently resolved inline in _play_dev rather than as their own
+    # phase, since they're single-shot choices with no board interaction.
+    # These stay as no-op-shaped hooks in case you want to split them
+    # into their own phase nodes later, e.g. for a cleaner MCTS action
+    # boundary.)
+    # -----------------------------------------------------------------
+ 
+    def _legal_year_of_plenty(self):
+        return []
+ 
+    def _apply_year_of_plenty(self, action):
+        raise RuntimeError("YEAR_OF_PLENTY is resolved inline via PLAY_DEV, not as its own phase")
+ 
+    def _legal_monopoly(self):
+        return []
+ 
+    def _apply_monopoly(self, action):
+        raise RuntimeError("MONOPOLY is resolved inline via PLAY_DEV, not as its own phase")
+ 
+    # -----------------------------------------------------------------
+    # Longest Road / Largest Army
+    # -----------------------------------------------------------------
+ 
+    def _update_largest_army(self):
+        best_p, best_n = self.largest_army_holder, LARGEST_ARMY_MIN - 1
+        if best_p is not None:
+            best_n = self.knights_played[best_p]
+        for p in range(self.n):
+            if self.knights_played[p] >= LARGEST_ARMY_MIN and self.knights_played[p] > best_n:
+                best_p, best_n = p, self.knights_played[p]
+        self.largest_army_holder = best_p
+ 
+    def _update_longest_road(self):
+        best_p, best_len = self.longest_road_holder, LONGEST_ROAD_MIN - 1
+        if best_p is not None:
+            best_len = self._longest_road_length(best_p)
+        for p in range(self.n):
+            length = self._longest_road_length(p)
+            if length >= LONGEST_ROAD_MIN and length > best_len: 
+                best_p, best_len = p, length
+        self.longest_road_holder = best_p
+ 
+    def _longest_road_length(self, player):
+        """
+        Longest simple path through `player`'s own roads, breaking at any
+        vertex owned (settled) by an opponent. Brute-force DFS from every
+        vertex touched by the player's roads — fine at Catan's scale
+        (<=15 roads/player, degree <=3 per vertex).
+        """
+        edges = self._player_roads(player)
+        if not edges:
+            return 0
+ 
+        adjacency = {}
+        for a, b in edges:
+            adjacency.setdefault(a, []).append(b)
+            adjacency.setdefault(b, []).append(a)
+ 
+        def blocked(v):
+            owner = self.settlements.get(v, self.cities.get(v))
+            return owner is not None and owner != player
+ 
+        best = 0
+ 
+        def dfs(v, visited_edges, length):
+            nonlocal best
+            best = max(best, length)
+            if blocked(v) and length > 0:
+                return  # can't continue building a path through an opponent's town
+            for nxt in adjacency.get(v, []):
+                e = _canon_edge(self, v, nxt)
+                if e not in visited_edges:
+                    visited_edges.add(e)
+                    dfs(nxt, visited_edges, length + 1)
+                    visited_edges.remove(e)
+ 
+        for start in adjacency:
+            dfs(start, set(), 0)
+ 
+        return best
