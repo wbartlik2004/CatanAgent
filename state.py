@@ -494,3 +494,195 @@ class GameState:
         self.robber_victim_pending = None
         self.phase = MAIN
  
+    '''main functions: build, trade, buy dev, play dev, end turn'''
+    
+    def _can_afford(self, player, cost):
+        return all(self.hands[player][r] >= qty for r, qty in cost.items())
+ 
+    def _pay(self, player, cost):
+        for r, qty in cost.items():
+            self.hands[player][r] -= qty
+ 
+    def _legal_main(self):
+        p = self.current
+        options = [{"type": "END_TURN"}]
+ 
+        # --- build road ---
+        if self._can_afford(p, BUILDING_COSTS["ROAD"]) and len(self._player_roads(p)) < PIECE_LIMITS["ROAD"]:
+            for e in self.board.edges:
+                if e not in self.roads and _road_connected(self, e, p):
+                    options.append({"type": "BUILD_ROAD", "edge": e})
+ 
+        # --- build settlement ---
+        n_settlements = sum(1 for o in self.settlements.values() if o == p)
+        if self._can_afford(p, BUILDING_COSTS["SETTLEMENT"]) and n_settlements < PIECE_LIMITS["SETTLEMENT"]:
+            for v in self.board.vertices:
+                if _distance_rule_ok(self, v) and _settlement_connected(self, v, p):
+                    options.append({"type": "BUILD_SETTLEMENT", "vertex": v})
+ 
+        # --- build city (upgrade own settlement) ---
+        n_cities = sum(1 for o in self.cities.values() if o == p)
+        if self._can_afford(p, BUILDING_COSTS["CITY"]) and n_cities < PIECE_LIMITS["CITY"]:
+            for v, owner in self.settlements.items():
+                if owner == p:
+                    options.append({"type": "BUILD_CITY", "vertex": v})
+ 
+        # --- buy dev card ---
+        if self._can_afford(p, DEV_CARD_COST) and sum(self.dev_deck.values()) > 0:
+            options.append({"type": "BUY_DEV"})
+ 
+        # --- play dev card (max one per turn, can't play one bought this turn) ---
+        if not self.dev_played_this_turn:
+            for d in DEV_TYPES:
+                if d == "VICTORY_POINT":
+                    continue  # never "played", just banked toward VP
+                owned = self.dev_hands[p][d]
+                bought_this_turn = self.dev_bought_this_turn.count(d)
+                if owned - bought_this_turn > 0:
+                    if d == "MONOPOLY":
+                        for r in RESOURCES:
+                            options.append({"type": "PLAY_DEV", "dev": d, "resource": r})
+                    elif d == "YEAR_OF_PLENTY":
+                        for i, r1 in enumerate(RESOURCES):
+                            for r2 in RESOURCES[i:]:
+                                options.append({"type": "PLAY_DEV", "dev": d, "resources": [r1, r2]})
+                    else:
+                        options.append({"type": "PLAY_DEV", "dev": d})
+ 
+        # --- trade with bank (no ports modeled: flat 4:1) ---
+        for give in RESOURCES:
+            if self.hands[p][give] >= BANK_TRADE_RATIO:
+                for get in RESOURCES:
+                    if get != give:
+                        options.append({"type": "TRADE_BANK", "give": give, "get": get,
+                                         "ratio": BANK_TRADE_RATIO})
+ 
+        return options
+ 
+    def _player_roads(self, player):
+        return [e for e, owner in self.roads.items() if owner == player]
+ 
+    def _apply_main(self, action):
+        p = self.current
+        t = action["type"]
+ 
+        if t == "END_TURN":
+            self._end_turn()
+            return
+ 
+        if t == "BUILD_ROAD":
+            e = _canon_edge(self, *action["edge"])
+            self._pay(p, BUILDING_COSTS["ROAD"])
+            self.roads[e] = p
+            self._update_longest_road()
+            return
+ 
+        if t == "BUILD_SETTLEMENT":
+            v = action["vertex"]
+            self._pay(p, BUILDING_COSTS["SETTLEMENT"])
+            self.settlements[v] = p
+            return
+ 
+        if t == "BUILD_CITY":
+            v = action["vertex"]
+            self._pay(p, BUILDING_COSTS["CITY"])
+            del self.settlements[v]
+            self.cities[v] = p
+            return
+ 
+        if t == "BUY_DEV":
+            self._pay(p, DEV_CARD_COST)
+            self.phase = DEV_DRAW
+            return
+ 
+        if t == "PLAY_DEV":
+            self._play_dev(action)
+            return
+ 
+        if t == "TRADE_BANK":
+            give, get, ratio = action["give"], action["get"], action["ratio"]
+            self.hands[p][give] -= ratio
+            self.hands[p][get] += 1
+            return
+ 
+        raise ValueError(f"Unknown MAIN action: {action}")
+ 
+    def _end_turn(self):
+        self.dev_bought_this_turn = []
+        self.dev_played_this_turn = False
+        self.current = (self.current + 1) % self.n
+        self.phase = ROLL
+        if self.victory_points(self.current) >= VP_TO_WIN:
+            # note: normally you'd check the player who just acted, not the
+            # next player; kept simple here since VP is checked continuously
+            pass
+        # actual win-check belongs after any VP-changing action; see _check_win()
+        self._check_win()
+ 
+    def _check_win(self):
+        for p in range(self.n):
+            if self.victory_points(p) >= VP_TO_WIN:
+                self.phase = GAME_OVER
+                return
+ 
+    def _play_dev(self, action):
+        p = self.current
+        d = action["dev"]
+        self.dev_hands[p][d] -= 1
+        self.dev_played_this_turn = True
+ 
+        if d == "KNIGHT":
+            self.knights_played[p] += 1
+            self._update_largest_army()
+            self.phase = MOVE_ROBBER
+        elif d == "ROAD_BUILDING":
+            self.free_roads_remaining = 2
+            self.phase = ROAD_BUILDING
+        elif d == "YEAR_OF_PLENTY":
+            for r in action["resources"]:
+                self.hands[p][r] += 1
+            # stays in MAIN
+        elif d == "MONOPOLY":
+            r = action["resource"]
+            for other in range(self.n):
+                if other == p:
+                    continue
+                self.hands[p][r] += self.hands[other][r]
+                self.hands[other][r] = 0
+            # stays in MAIN
+        else:
+            raise ValueError(f"Unknown dev card: {d}")
+ 
+        self._check_win()
+        
+    '''dev draw chance node'''
+        
+    def _legal_dev_draw(self):
+        total = sum(self.dev_deck.values())
+        if total == 0:
+            return []
+        return [{"type": "DEV_DRAWN", "dev": d, "prob": qty / total}
+                for d, qty in self.dev_deck.items() if qty > 0]
+ 
+    def _apply_dev_draw(self, action):
+        d = action["dev"]
+        self.dev_deck[d] -= 1
+        self.dev_hands[self.current][d] += 1
+        self.dev_bought_this_turn.append(d)
+        self.phase = MAIN
+        self._check_win()
+        
+    '''road building dev card phase'''
+    def _legal_road_building(self):
+        p = self.current
+        return [{"type": "BUILD_ROAD", "edge": e} for e in self.board.edges
+                if e not in self.roads and _road_connected(self, e, p)]
+ 
+    def _apply_road_building(self, action):
+        p = self.current
+        e = _canon_edge(self, *action["edge"])
+        self.roads[e] = p  # free: no payment
+        self.free_roads_remaining -= 1
+        self._update_longest_road()
+        if self.free_roads_remaining <= 0:
+            self.phase = MAIN
