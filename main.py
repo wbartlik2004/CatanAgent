@@ -24,7 +24,7 @@ def play(seed=0, n_players=2, verbose=False):
             action = rng.choices(actions, weights=[a["prob"] for a in actions])[0]
         else:
             ### BASELINE "RANDOM AGENT" that just picks a random choice from those given
-            action = rng.choices(actions)
+            action = rng.choice(actions)
         # optional mode to watch game play out via terminal, NOT for running long sims Will
         if verbose:
             print(f"{gs.phase:<16} P{gs.current_player()} {action}")
@@ -38,8 +38,8 @@ if __name__ == "__main__":
     for seed in (1, 42):
         for n in (2, 4):
             gs = play(seed, n, verbose=True)
-            print(f"seed {seed}: winner=P{rules.winner(gs)} "
-                f"VPs={[rules.victory_points(gs, p) for p in range(gs.n)]}")
+            print(f"seed {seed}: winner=P{gs.winner()} "
+                f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
 
 
 
