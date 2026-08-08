@@ -36,6 +36,14 @@ EDGES = [
     (41, 42), (41, 44), (42, 47), (43, 44), (43, 46), (44, 50), (45, 46),
     (46, 52), (47, 48), (47, 51), (48, 49), (50, 51), (50, 53), (52, 53),
 ]
+HEX_RESOURCE_MAP = {
+    "FOREST":    "WOOD",
+    "HILLS":     "BRICK",
+    "PASTURE":   "SHEEP",
+    "FIELDS":    "WHEAT",
+    "MOUNTAINS": "ORE",
+    "DESERT":    None,
+}
 
 # vertex_id -> (x, y) in hex-grid units. Only used for drawing/reference,
 # never for game logic.
