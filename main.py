@@ -1,4 +1,6 @@
 import random
+
+import outcome
 from agent import HeuristicAgent, RandomAgent, sample_chance_outcome
 from board import Board
 import state
@@ -58,6 +60,8 @@ def play2(agents, seed=0, verbose=False):
             action = agents[p].choose_action(gs, p)
             if action is None:
                 raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
+        if action.get("type") == "ROLL":
+            print(f"roll={action} hands={ {p: sum(h.values()) for p, h in enumerate(gs.hands)} }")
         if verbose:
             print(f"{gs.phase:<16} P{gs.current_player()} {action}")
         gs = rules.apply(gs, action)
