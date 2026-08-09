@@ -123,3 +123,62 @@ class HeuristicAgent(Agent):
             if score > best_score:
                 best_action, best_score = a, score
         return best_action
+    
+class CoEvolutionAgent(Agent):
+    """Same greedy 1-ply decision rule as HeuristicAgent, but the weight vector
+    ("genome") is meant to be evolved by an outer evolutionary loop rather
+    than hand-tuned. genome -> the actual evolvable parameters (dict, same, keys as DEFAULT_WEIGHTS)
+    generation -> which generation this individual belongs to games_played -> fitness bookkeeping across a generation
+    fitness_history-> per-game results, for computing average fitness
+    mutate()/crossover() are provided so an external co-evolution driver (which owns the population and generation loop) can produce offspring
+    without reaching into genome internals directly."""
+ 
+    def __init__(self, color, genome=None, generation=0):
+        super().__init__(color)
+        self.genome = dict(genome) if genome else {
+            k: v * random.uniform(0.5, 1.5) for k, v in DEFAULT_WEIGHTS.items()
+        }
+        self.generation = generation
+        self.games_played = 0
+        self.fitness_history = []  # list of final VP (or win=1/loss=0) per game
+ 
+    def choose_action(self, game_state, player_index):
+        actions = game_state.legal_actions()
+        if not actions:
+            return None
+ 
+        best_action, best_score = None, float("-inf")
+        for a in actions:
+            resulting_state = game_state.apply(a)
+            score = evaluate_state(resulting_state, player_index, self.genome)
+            if score > best_score:
+                best_action, best_score = a, score
+        return best_action
+ 
+    def record_result(self, final_vp, won):
+        """Call once per completed game to feed the evolutionary loop."""
+        self.games_played += 1
+        self.fitness_history.append({"vp": final_vp, "won": won})
+ 
+    def average_fitness(self):
+        if not self.fitness_history:
+            return 0.0
+        return sum(g["vp"] + (5 if g["won"] else 0) for g in self.fitness_history) / len(self.fitness_history)
+ 
+    def mutate(self, rate=0.2, sigma=0.5):
+        """Return a NEW CoEvolutionAgent with a perturbed genome (doesn't mutate self — evolution should compare parent and child, not
+        silently overwrite the parent)."""
+        child_genome = dict(self.genome)
+        for k in child_genome:
+            if random.random() < rate:
+                child_genome[k] = max(0.0, child_genome[k] + random.gauss(0, sigma))
+        return CoEvolutionAgent(self.color, genome=child_genome, generation=self.generation + 1)
+ 
+    def crossover(self, other):
+        """Uniform crossover: each weight independently comes from self or
+        other. Returns a new offspring CoEvolutionAgent."""
+        child_genome = {}
+        for k in self.genome:
+            child_genome[k] = self.genome[k] if random.random() < 0.5 else other.genome[k]
+        return CoEvolutionAgent(self.color, genome=child_genome,
+                                 generation=max(self.generation, other.generation) + 1)
