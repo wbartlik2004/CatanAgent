@@ -44,7 +44,7 @@ if __name__ == "__main__":
             print(f"seed {seed}: winner=P{gs.winner()} "
                 f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
 
-
+ 
 
 def play2(agents, seed=0, verbose=False):
     rng2 = random.Random(seed)
