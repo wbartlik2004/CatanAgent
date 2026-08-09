@@ -47,11 +47,11 @@ def play_game(agents, board=None, max_actions=6000, seed=None):
 
 DEFAULT_WEIGHTS = {
     "victory_points": 10.0,
-    "settlements": 2.0,
-    "cities": 4.0,
-    "roads": 0.25,
+    "settlements": 4.0,
+    "cities": 8.0,
+    "roads": 0.5,
     "resource_total": 0.2,
-    "dev_cards": 0.4,
+    "dev_cards": 0.25,
     "longest_road_bonus": 2,   
     "largest_army_bonus": 2,   
 }
