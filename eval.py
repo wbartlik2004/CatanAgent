@@ -1,4 +1,4 @@
-from main import RESOURCES, BUILDING_COSTS
+from state import RESOURCES, BUILDING_COSTS
 
 DEFAULT_WEIGHTS = {
     "victory_points": 10.0,
