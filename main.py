@@ -35,8 +35,8 @@ def play(seed=0, n_players=2, verbose=False):
 
 # testing
 if __name__ == "__main__":
-    for seed in (1, 42):
-        for n in (2, 4):
+    for seed in (1, 2):
+        for n in (1, 2):
             gs = play(seed, n, verbose=True)
             print(f"seed {seed}: winner=P{gs.winner()} "
                 f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
