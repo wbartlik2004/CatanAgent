@@ -1,4 +1,5 @@
 import random
+from agent import HeuristicAgent, RandomAgent, sample_chance_outcome
 from board import Board
 import state
 import rules
@@ -34,12 +35,41 @@ def play(seed=0, n_players=2, verbose=False):
     return gs
 
 # testing
-if __name__ == "__main__":
+'''if __name__ == "__main__":
     for seed in (1, 2):
         for n in (1, 2):
             gs = play(seed, n, verbose=True)
             print(f"seed {seed}: winner=P{gs.winner()} "
-                f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
+                f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
 
 
 
+def play2(agents, seed=0, verbose=False):
+    rng2 = random.Random(seed)
+    n_players = len(agents)
+    gs = state.GameState(Board(), n_players)
+
+    while not gs.is_terminal():
+        if gs.is_chance_node():
+            action = sample_chance_outcome(gs)
+            if action is None:
+                raise RuntimeError(f"no legal chance actions at phase {gs.phase}")
+        else:
+            p = gs.current_player()
+            action = agents[p].choose_action(gs, p)
+            if action is None:
+                raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
+
+        if verbose:
+            print(f"{gs.phase:<16} P{gs.current_player()} {action}")
+
+        gs = rules.apply(gs, action)
+
+    return gs
+
+if __name__ == "__main__":
+    for seed in (1, 2):
+        agents = [RandomAgent(color="red", seed=seed), HeuristicAgent(color="blue")]
+        gs = play2(agents, seed=seed, verbose=True)
+        print(f"seed {seed}: winner=P{gs.winner()} "
+              f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
