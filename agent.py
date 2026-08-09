@@ -35,7 +35,7 @@ def play_game(agents, board=None, max_actions=6000, seed=None):
             outcome = sample_chance_outcome(gs)
             if outcome is None:
                 break
-            gs = rules.apply(gs, action)
+            gs = rules.apply(gs, outcome)
         else:
             p = gs.current_player()
             action = agents[p].choose_action(gs, p)
