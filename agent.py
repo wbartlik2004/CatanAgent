@@ -83,7 +83,7 @@ def sample_chance_outcome(game_state, rng=random):
     """Sample a chance-node action according to its listed probabilities.
     Used by rollouts/simulations; game-loop code should call this directly
     for ROLL/STEAL/DEV_DRAW phases rather than routing through an agent."""
-    actions = game_state.legal_actions()
+    actions = rules.legal_actions(game_state)
     if not actions:
         return None
     weights = [a.get("prob", 1) for a in actions]
@@ -96,7 +96,7 @@ class RandomAgent(Agent):
         self.rng = random.Random(seed)
 
     def choose_action(self, game_state, player_index):
-        actions = game_state.legal_actions()
+        actions = rules.legal_actions(game_state)
         if not actions:
             return None
         return self.rng.choice(actions)
@@ -112,13 +112,13 @@ class HeuristicAgent(Agent):
         self.weights = dict(weights) if weights else dict(DEFAULT_WEIGHTS)
 
     def choose_action(self, game_state, player_index):
-        actions = game_state.legal_actions()
+        actions = rules.legal_actions(game_state)
         if not actions:
             return None
 
         best_action, best_score = None, float("-inf")
         for a in actions:
-            resulting_state = game_state.apply(a)
+            resulting_state = rules.apply(game_state, a)
             score = evaluate_state(resulting_state, player_index, self.weights)
             if score > best_score:
                 best_action, best_score = a, score

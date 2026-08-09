@@ -34,8 +34,8 @@ def play(seed=0, n_players=2, verbose=False):
 
     return gs
 
-# testing
-'''if __name__ == "__main__":
+'''# testing
+if __name__ == "__main__":
     for seed in (1, 2):
         for n in (1, 2):
             gs = play(seed, n, verbose=True)
@@ -48,7 +48,6 @@ def play2(agents, seed=0, verbose=False):
     rng2 = random.Random(seed)
     n_players = len(agents)
     gs = state.GameState(Board(), n_players)
-
     while not gs.is_terminal():
         if gs.is_chance_node():
             action = sample_chance_outcome(gs)
@@ -59,12 +58,9 @@ def play2(agents, seed=0, verbose=False):
             action = agents[p].choose_action(gs, p)
             if action is None:
                 raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
-
         if verbose:
             print(f"{gs.phase:<16} P{gs.current_player()} {action}")
-
         gs = rules.apply(gs, action)
-
     return gs
 
 if __name__ == "__main__":
