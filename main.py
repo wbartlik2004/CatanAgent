@@ -1,175 +1,45 @@
 import random
-from Player import Player
 from board import Board
-from CatanGame import CatanGame
+import state
+import rules
 
-# Core Constants
-RESOURCES = ["WOOD", "BRICK", "SHEEP", "WHEAT", "ORE"]
-HEX_TYPES = ["FOREST", "HILLS", "PASTURE", "FIELDS", "MOUNTAINS", "DESERT"]
+def play(seed=0, n_players=2, verbose=False):
+    # replicable randome seed for demo purposes
+    rng = random.Random(seed)
 
-HEX_RESOURCE_MAP = {
-    "FOREST": "WOOD",
-    "HILLS": "BRICK",
-    "PASTURE": "SHEEP",
-    "FIELDS": "WHEAT",
-    "MOUNTAINS": "ORE",
-    "DESERT": None
-}
- 
-BUILDING_COSTS = {
-    "ROAD": {"WOOD": 1, "BRICK": 1},
-    "SETTLEMENT": {"WOOD": 1, "BRICK": 1, "SHEEP": 1, "WHEAT": 1},
-    "CITY": {"WHEAT": 2, "ORE": 3}
-}
+    # starting gamestate initialization
+    gs = state.GameState(Board(), n_players)
 
-DEV_CARD_COSTS = {"SHEEP": 1, "WHEAT": 1, "ORE": 1}
+    while not gs.is_terminal():
+        # possible actions at every gamestate
+        actions = rules.legal_actions(gs)
+        # bug catching
+        if not actions:
+            raise RuntimeError(f"no legal actions at phase {gs.phase}")
 
-# Standard 25-card development deck composition.
-DEV_CARD_DECK = {
-    "KNIGHT": 14,
-    "VICTORY_POINT": 5,
-    "ROAD_BUILDING": 2,
-    "YEAR_OF_PLENTY": 2,
-    "MONOPOLY": 2,
-}
+        # for chance nodes we make weighted random choices based on weight associated with random action
+        # be it dice rolls (weighted by prob of rolling #) or steals (wegihted by # of each reasource in victim hand)
+        if gs.is_chance_node():
+            # using random seed for replicability
+            action = rng.choices(actions, weights=[a["prob"] for a in actions])[0]
+        else:
+            ### BASELINE "RANDOM AGENT" that just picks a random choice from those given
+            action = rng.choice(actions)
+        # optional mode to watch game play out via terminal, NOT for running long sims Will
+        if verbose:
+            print(f"{gs.phase:<16} P{gs.current_player()} {action}")
+        # and then we make an apply call that copies gs, makes chosen move, returns gs + action
+        gs = rules.apply(gs, action)
 
-# Per-player piece limits (the physical supply each player has to build with).
-PIECE_LIMITS = {
-    "ROAD": 15,
-    "SETTLEMENT": 5,
-    "CITY": 4,
-}
+    return gs
 
-# Bonus thresholds.
-LONGEST_ROAD_MIN_LENGTH = 5      # min road length to claim "Longest Road" (+2 VP)
-LARGEST_ARMY_MIN_KNIGHTS = 3     # min knights played to claim "Largest Army" (+2 VP)
-
-# --- Ports / trading ---
-PORT_TYPES = ["GENERIC", "WOOD", "BRICK", "SHEEP", "WHEAT", "ORE"]
-
-BANK_TRADE_RATIO = 4  # default trade-with-the-bank ratio (no port): 4:1
-
-PORT_TRADE_RATIOS = {
-    "GENERIC": 3,  # 3:1 at a generic port
-    "WOOD": 2,     # 2:1 at a resource-specific port
-    "BRICK": 2,
-    "SHEEP": 2,
-    "WHEAT": 2,
-    "ORE": 2,
-}
-
-# Standard board has 9 ports total: 4 generic (3:1) + 5 resource-specific (2:1).
-PORT_COUNTS = {
-    "GENERIC": 4,
-    "WOOD": 1,
-    "BRICK": 1,
-    "SHEEP": 1,
-    "WHEAT": 1,
-    "ORE": 1,
-}
-
-# tile_id -> (q, r) axial coordinate of that tile's hex center.
-# Not needed for gameplay, only for drawing/reference.
-TILE_AXIAL = {
-    0: (0, -2), 1: (1, -2), 2: (2, -2),
-    3: (-1, -1), 4: (0, -1), 5: (1, -1), 6: (2, -1),
-    7: (-2, 0), 8: (-1, 0), 9: (0, 0), 10: (1, 0), 11: (2, 0),
-    12: (-2, 1), 13: (-1, 1), 14: (0, 1), 15: (1, 1),
-    16: (-2, 2), 17: (-1, 2), 18: (0, 2),
-}
-
-# tile_id -> the 6 vertex IDs at that tile's corners, in consistent order.
-TILE_VERTICES = {
-    0: (0, 1, 2, 3, 4, 5), 1: (6, 7, 8, 1, 0, 9),
-    2: (10, 11, 12, 7, 6, 13), 3: (2, 14, 15, 16, 17, 3),
-    4: (8, 18, 19, 14, 2, 1), 5: (12, 20, 21, 18, 8, 7),
-    6: (22, 23, 24, 20, 12, 11), 7: (15, 25, 26, 27, 28, 16),
-    8: (19, 29, 30, 25, 15, 14), 9: (21, 31, 32, 29, 19, 18),
-    10: (24, 33, 34, 31, 21, 20), 11: (35, 36, 37, 33, 24, 23),
-    12: (30, 38, 39, 40, 26, 25), 13: (32, 41, 42, 38, 30, 29),
-    14: (34, 43, 44, 41, 32, 31), 15: (37, 45, 46, 43, 34, 33),
-    16: (42, 47, 48, 49, 39, 38), 17: (44, 50, 51, 47, 42, 41),
-    18: (46, 52, 53, 50, 44, 43),
-}
-
-# All 72 unique board edges, as canonical (v1, v2) pairs with v1 < v2.
-EDGES = [
-    (0, 1), (0, 5), (0, 9), (1, 2), (1, 8), (2, 3), (2, 14), (3, 4),
-    (3, 17), (4, 5), (6, 7), (6, 9), (6, 13), (7, 8), (7, 12), (8, 18),
-    (10, 11), (10, 13), (11, 12), (11, 22), (12, 20), (14, 15), (14, 19),
-    (15, 16), (15, 25), (16, 17), (16, 28), (18, 19), (18, 21), (19, 29),
-    (20, 21), (20, 24), (21, 31), (22, 23), (23, 24), (23, 35), (24, 33),
-    (25, 26), (25, 30), (26, 27), (26, 40), (27, 28), (29, 30), (29, 32),
-    (30, 38), (31, 32), (31, 34), (32, 41), (33, 34), (33, 37), (34, 43),
-    (35, 36), (36, 37), (37, 45), (38, 39), (38, 42), (39, 40), (39, 49),
-    (41, 42), (41, 44), (42, 47), (43, 44), (43, 46), (44, 50), (45, 46),
-    (46, 52), (47, 48), (47, 51), (48, 49), (50, 51), (50, 53), (52, 53),
-]
-
-# vertex_id -> (x, y) in hex-grid units. Only used for drawing/reference,
-# never for game logic.
-VERTEX_COORDS = {
-    0: (-0.866, -3.5), 1: (-0.866, -2.5), 2: (-1.732, -2.0), 3: (-2.598, -2.5),
-    4: (-2.598, -3.5), 5: (-1.732, -4.0), 6: (0.866, -3.5), 7: (0.866, -2.5),
-    8: (0.0, -2.0), 9: (-0.0, -4.0), 10: (2.598, -3.5), 11: (2.598, -2.5),
-    12: (1.732, -2.0), 13: (1.732, -4.0), 14: (-1.732, -1.0), 15: (-2.598, -0.5),
-    16: (-3.464, -1.0), 17: (-3.464, -2.0), 18: (0.0, -1.0), 19: (-0.866, -0.5),
-    20: (1.732, -1.0), 21: (0.866, -0.5), 22: (3.464, -2.0), 23: (3.464, -1.0),
-    24: (2.598, -0.5), 25: (-2.598, 0.5), 26: (-3.464, 1.0), 27: (-4.33, 0.5),
-    28: (-4.33, -0.5), 29: (-0.866, 0.5), 30: (-1.732, 1.0), 31: (0.866, 0.5),
-    32: (0.0, 1.0), 33: (2.598, 0.5), 34: (1.732, 1.0), 35: (4.33, -0.5),
-    36: (4.33, 0.5), 37: (3.464, 1.0), 38: (-1.732, 2.0), 39: (-2.598, 2.5),
-    40: (-3.464, 2.0), 41: (0.0, 2.0), 42: (-0.866, 2.5), 43: (1.732, 2.0),
-    44: (0.866, 2.5), 45: (3.464, 2.0), 46: (2.598, 2.5), 47: (-0.866, 3.5),
-    48: (-1.732, 4.0), 49: (-2.598, 3.5), 50: (0.866, 3.5), 51: (0.0, 4.0),
-    52: (2.598, 3.5), 53: (1.732, 4.0),
-}
-
-# The set of all valid vertex IDs, derived from TILE_VERTICES — the actual
-# source of truth for board topology. (VERTEX_COORDS happens to share the
-# same keys today, but it's a drawing-only table, not the topology itself,
-# so gameplay code should never read vertex validity from it.)
-ALL_VERTICES = frozenset(v for verts in TILE_VERTICES.values() for v in verts) # TILE VERTICES becomes ALL_VERTICES
-
-# --- SAMPLE GAMEPLAY LOOP ---
+# testing
 if __name__ == "__main__":
-    game = CatanGame()
+    for seed in (1, 42):
+        for n in (2, 4):
+            gs = play(seed, n, verbose=True)
+            print(f"seed {seed}: winner=P{gs.winner()} "
+                f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
 
-    # Sanity-check the generated topology against known Catan board stats.
-    print(f"Tiles: {len(game.board.tiles)} (expected 19)")
-    print(f"Unique vertices: {len(game.board.vertices)} (expected 54)")
-    print(f"Unique edges: {len(game.board.edges)} (expected 72)")
 
-    # Pre-give players some starting settlements for demonstration
-    # (use real vertex IDs from the generated board, and confirm they're
-    # actually adjacent via a shared edge as a topology check).
-    v0 = game.board.tiles[0]["vertices"][0]
-    v1 = game.board.tiles[-1]["vertices"][0]
 
-    game.board.settlements[v0] = game.players[0]  # RED
-    game.players[0].settlements.append(v0)
-    game.players[0].victory_points += 1
-
-    game.board.settlements[v1] = game.players[1]  # BLUE
-    game.players[1].settlements.append(v1)
-    game.players[1].victory_points += 1
-
-    print("\n=== STARTING PURE-PYTHON CATAN ===")
-
-    # Simulate 5 turns change into a while not won loop
-    all_vertex_ids = list(game.board.vertices)
-    for turn in range(5):
-        current_p = game.players[game.current_player_idx]
-        print(f"\n--- Turn {game.turn + 1}: {current_p.color}'s Turn ---")
-
-        # Roll dice
-        game.roll_dice()
-        
-        #game.player_actions(current_p)  
-
-        # Display current resources
-        res_summary = ", ".join([f"{k}: {v}" for k, v in current_p.resources.items() if v > 0])
-        print(f"  {current_p.color} hand: {res_summary if res_summary else 'Empty'}")
-
-        game.next_turn()
-    game.print_board_summary()
