@@ -30,7 +30,7 @@ class CoEvolutionTrainer:
         self.max_actions_per_game = max_actions_per_game
         self.rng = random.Random(seed)
         self.generation = 0
-        self.population = [CoEvolutionAgent(f"G0_IND{i}", generation=0) for i in range(population_size)]
+        self.population = [CoEvolutionAgent(f"G0_IND{i}", genome = DEFAULT_GENOME generation=0) for i in range(population_size)]
         self.history = []  # one summary dict per generation
 
     '''eval'''
