@@ -102,6 +102,7 @@ def playEvol(agents, seed=0, verbose=False):
             if action is None:
                 raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
         if verbose:
-            print(f"{gs.phase:<16} P{gs.current_player()} {action}")
+            '''print(f"{gs.phase:<16} P{gs.current_player()} {action}")'''
+            print("Game Done")
         gs = rules.apply(gs, action)
     return gs
