@@ -146,7 +146,7 @@ class CoEvolutionAgent(Agent):
             return None
         best_action, best_score = None, float("-inf")
         for a in actions:
-            resulting_state = game_state.apply(a)
+            resulting_state = rules.apply(game_state, a)
             score = evaluate_state(resulting_state, player_index, self.genome)
             if score > best_score:
                 best_action, best_score = a, score
