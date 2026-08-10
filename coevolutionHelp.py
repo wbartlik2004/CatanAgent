@@ -80,7 +80,7 @@ class CoEvolutionTrainer:
                       f"mean={stats['mean_fitness']:.2f}")
             self._next_generation()
         return self.history
-
+ 
     def best_genome(self):
         """The best genome seen across all recorded generations."""
         if not self.history:
