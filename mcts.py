@@ -15,6 +15,7 @@ At each AGENT decision point:
 import random
 import rules
 import json
+from eval import evaluate_state
 
 # will's default weights (he cheated a little)
 WILL_DEFAULT_WEIGHTS = {
@@ -203,9 +204,13 @@ class MCTSAgent:
 
         # and for a rollout ending at nonterminal state
         # we'll apply our custom weights, need helper function for now placeholder eval_state
+        # but this will value terminal states differently from depth-capped rollouts, probably need to normalize
+        # the depth cap evals to 0-1
         else:
             return {p: evaluate_state(state, p, self.rollout_weights) for p in range(state.n)}
         pass
+
+        #but
 
     def _backpropagate(self, node, values):
         """
