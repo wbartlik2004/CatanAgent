@@ -141,7 +141,7 @@ class CoEvolutionAgent(Agent):
         self.fitness_history = []  # list of final VP (or win=1/loss=0) per game
  
     def choose_action(self, game_state, player_index):
-        actions = game_state.legal_actions()
+        actions = rules.legal_actions(game_state)
         if not actions:
             return None
         best_action, best_score = None, float("-inf")

@@ -1,6 +1,8 @@
 import random
-from agent import CoEvolutionAgent, RandomAgent, play_game
-from main import play2
+from agent import CoEvolutionAgent, RandomAgent, play_game, sample_chance_outcome
+from board import Board
+import state
+import rules
 
 class CoEvolutionTrainer:
     def __init__(self, population_size=8, n_generations=10, games_per_round=1,
@@ -26,7 +28,7 @@ class CoEvolutionTrainer:
         self.rng.shuffle(pool)
         groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
         for group in groups:
-            gs = play2(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True)
+            gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True)
             winner = gs.winner()
             for idx, agent in enumerate(group):
                 if isinstance(agent, CoEvolutionAgent):
@@ -83,3 +85,23 @@ class CoEvolutionTrainer:
         if not self.history:
             return None
         return max(self.history, key=lambda h: h["best_fitness"])["best_genome"]
+    
+'''Helper Function for running a single game between two CoEvolutionAgents, used by the trainer.'''
+def playEvol(agents, seed=0, verbose=False):
+    rng2 = random.Random(seed)
+    n_players = len(agents)
+    gs = state.GameState(Board(), n_players)
+    while not gs.is_terminal():
+        if gs.is_chance_node():
+            action = sample_chance_outcome(gs)
+            if action is None:
+                raise RuntimeError(f"no legal chance actions at phase {gs.phase}")
+        else:
+            p = gs.current_player()
+            action = agents[p].choose_action(gs, p)
+            if action is None:
+                raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
+        if verbose:
+            print(f"{gs.phase:<16} P{gs.current_player()} {action}")
+        gs = rules.apply(gs, action)
+    return gs
