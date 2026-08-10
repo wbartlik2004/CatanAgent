@@ -1,20 +1,10 @@
 import random
-from agent import CoEvolutionAgent, RandomAgent, play_game, sample_chance_outcome
+from agent import CoEvolutionAgent, RandomAgent, play_game, sample_chance_outcome, DEFAULT_WEIGHTS
 from board import Board
 import state
 import rules
 
-DEFAULT_GENOME = {
-    "victory_points": 10.0,
-    "settlements": 2.0,
-    "cities": 3.0,
-    "roads": 0.3,
-    "resource_total": 0.2,
-    "resource_diversity": 0.5,   # number of distinct resource types held
-    "dev_cards": 0.4,
-    "longest_road_bonus": 1.5,   # extra credit for HOLDING longest road
-    "largest_army_bonus": 1.5,   # extra credit for HOLDING largest army
-}
+
 
 class CoEvolutionTrainer:
     def __init__(self, population_size=8, n_generations=10, games_per_round=1,
@@ -30,7 +20,7 @@ class CoEvolutionTrainer:
         self.max_actions_per_game = max_actions_per_game
         self.rng = random.Random(seed)
         self.generation = 0
-        self.population = [CoEvolutionAgent(f"G0_IND{i}", genome = DEFAULT_GENOME, generation=0) for i in range(population_size)]
+        self.population = [CoEvolutionAgent(f"G0_IND{i}", genome = DEFAULT_WEIGHTS, generation=0) for i in range(population_size)]
         self.history = []  # one summary dict per generation
 
     '''eval'''
