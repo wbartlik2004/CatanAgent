@@ -12,6 +12,7 @@ At each AGENT decision point:
 - choose in-game action based off child node with the most visits or highest avg per visit
 
 """
+import math
 import random
 import rules
 import json
@@ -144,7 +145,53 @@ class MCTSAgent:
         return #best action from parent -> bes child
 
     def _select(self, node):
-        pass
+        """
+        Start at root node
+        Walk down exisiting nodes (which are fully expanded, have no untried actions left)
+        Checking if untried actions/terminal
+        If node is untried or terminal, we expand it
+        """
+        # so if we're at a non-terminal node that has untried actions, return that node for expand
+        while not node.is_terminal():
+            if node.untried_actions:
+                return node
+        # and in the case that the node has been expanded, move on to its best child by UCB
+        # will require helper - like ai-boson implementation
+            node = self._best_child(node)
+        # and in the case that the node is terminal, we can just return that node for rollout
+        return node
+
+    def _best_child(self, node):
+        """
+        Helper function allowing select to move down tree from
+        one fully-expanded node to its child with highest value
+        """
+        # if a node is a chance node it doesn't have a best child,
+        # and we need to just pick one from prob dist, done many times
+        if node.state.is_chance_node():
+            children = list(node.children.values())
+            weights = [ch.action_from_parent["prob"] for ch in children]
+            return self.rng.choices(children, weights=weights)[0]
+
+        # for player decision nodes, if a child node is unvisited we have to return that node for selection
+        mover = node.state.current_player()
+        for ch in node.children.values():
+            if ch.visits == 0:
+                return ch
+
+        # if children all visited, return the child with the highest UCB score
+        return max(node.children.values(), key=lambda ch: self._ucb(ch, mover))
+
+    def _ucb(self, child, mover):
+        """
+        UCB formula implementation: Q(s, a) + c * (ln(parent visits) / child visits)
+        The point of UCB is, as we went over in class, to balance expansion into
+        nodes suspected to be good with exploration of nodes we have little data on
+
+        """
+        exploit = child.q(mover)
+        explore = self.c * math.sqrt(math.log(child.parent.visits) / child.visits)
+        return exploit + explore
 
     def _expand(self,node):
         """
@@ -239,8 +286,7 @@ class MCTSAgent:
             node = node.parent
 
 
-    def _ucb(self, child):
-        pass
+
 
 
 

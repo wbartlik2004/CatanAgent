@@ -10,7 +10,7 @@ from mcts import MCTSAgent, JACK_DEFAULT_WEIGHTS
 
 # simple game sim
 rng = random.Random(0)
-gs = state.GameState(Board(), 2)
+gs = state.GameState(Board(), 4)
 for _ in range(50):
     acts = rules.legal_actions(gs)
     a = rng.choices(acts, weights=[x["prob"] for x in acts])[0] if gs.is_chance_node() else rng.choice(acts)
