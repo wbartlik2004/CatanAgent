@@ -134,7 +134,7 @@ class GameState:
         for p in range(self.n):
             if self.victory_points(p) >= VP_TO_WIN:
                 return p
-        return None
+        return max(range(self.n), key=lambda p: self.victory_points(p))
 
     def victory_points(self, player):
         """

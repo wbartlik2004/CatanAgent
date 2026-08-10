@@ -49,13 +49,25 @@ DEFAULT_WEIGHTS = {
     "victory_points": 10.0,
     "settlements": 4.0,
     "cities": 8.0,
-    "roads": 1.0,
-    "resource_total": 0.5,
+    "roads": 4.0,
+    "resource_total": 0.10,
     "dev_cards": 1.0,
-    "longest_road_bonus": 2.0,   
-    "largest_army_bonus": 2.0,   
-    "resource_diversity": 0.25,
-    "dice_prob": 72
+    "longest_road_bonus": 2.0,
+    "largest_army_bonus": 2.0,
+    "resource_diversity": 0.75,
+    "value_wood": 1.0,
+    "value_brick": 1.0,
+    "value_sheep": 0.8,
+    "value_wheat": 1.2,
+    "value_ore": 1.2,
+}
+
+_RESOURCE_WEIGHT_KEY = {
+    "WOOD": "value_wood",
+    "BRICK": "value_brick",
+    "SHEEP": "value_sheep",
+    "WHEAT": "value_wheat",
+    "ORE": "value_ore",
 }
 
 def evaluate_state(game_state, player_index, weights=DEFAULT_WEIGHTS):
