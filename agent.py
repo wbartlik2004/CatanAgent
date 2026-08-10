@@ -50,11 +50,11 @@ DEFAULT_WEIGHTS = {
     "settlements": 4.0,
     "cities": 8.0,
     "roads": 4.0,
-    "resource_total": 0.50,
-    "dev_cards": 2.0,
-    "longest_road_bonus": 2.0,   
-    "largest_army_bonus": 2.0,   
-    "resource_diversity": 2.0,
+    "resource_total": 0.00,
+    "dev_cards": 0.0,
+    "longest_road_bonus": 0.0,   
+    "largest_army_bonus": 0.0,   
+    "resource_diversity": 0.0,
     "dice_prob": 144
 }
 
