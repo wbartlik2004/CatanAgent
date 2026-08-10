@@ -74,7 +74,7 @@ def play2(agents, seed=0, verbose=False):
               f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
 
 if __name__ == "__main__":
-    trainer = CoEvolutionTrainer(population_size=8, n_generations=5, games_per_round=1,
+    trainer = CoEvolutionTrainer(population_size=8, n_generations=10, games_per_round=1,
                                  elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
                                  mutation_sigma=0.5, max_actions_per_game=500, seed=None)
     trainer.runEvolution(verbose=True)
