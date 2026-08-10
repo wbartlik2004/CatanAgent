@@ -1,7 +1,6 @@
 import math
 import random
 from board import Board
-from eval import _evaluate_action
 from state import GameState, RESOURCES, GAME_OVER
 import rules
 
@@ -125,6 +124,21 @@ class HeuristicAgent(Agent):
             if score > best_score:
                 best_action, best_score = a, score
         return best_action
+
+def _evaluate_action(game_state, action, player_index, weights):
+    resulting_state = rules.apply(game_state, action)
+    if action["type"] != "TRADE_BANK":
+        return evaluate_state(resulting_state, player_index, weights)
+    follow_up_actions = rules.legal_actions(resulting_state)
+    if not follow_up_actions:
+        return evaluate_state(resulting_state, player_index, weights)
+    best_follow_up_score = float("-inf")
+    for follow_up in follow_up_actions:
+        follow_up_state = rules.apply(resulting_state, follow_up)
+        score = evaluate_state(follow_up_state, player_index, weights)
+        if score > best_follow_up_score:
+            best_follow_up_score = score
+    return best_follow_up_score
     
 class CoEvolutionAgent(Agent):
     """Same greedy 1-ply decision rule as HeuristicAgent, but the weight vector
