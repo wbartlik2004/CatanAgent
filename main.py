@@ -3,6 +3,7 @@ import random
 import outcome
 from agent import HeuristicAgent, RandomAgent, sample_chance_outcome
 from board import Board
+from coevolutionHelp import CoEvolutionTrainer
 import state
 import rules
 
@@ -65,9 +66,21 @@ def play2(agents, seed=0, verbose=False):
         gs = rules.apply(gs, action)
     return gs
 
-if __name__ == "__main__":
+'''if __name__ == "__main__":
     for seed in (1, 2):
         agents = [RandomAgent(color="red", seed=seed), HeuristicAgent(color="blue")]
         gs = play2(agents, seed=seed, verbose=True)
         print(f"seed {seed}: winner=P{gs.winner()} "
-              f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
+              f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
+
+if __name__ == "__main__":
+    trainer = CoEvolutionTrainer(population_size=8, n_generations=10, games_per_round=1,
+                                 elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
+                                 mutation_sigma=0.5, max_actions_per_game=4000, seed=None)
+    trainer.runEvolution(verbose=True)
+    print("\n--- Training Complete ---")
+    best_weights = trainer.best_genome()
+    print("\nBest Genome Discovered:" + f"\n{best_weights}")
+    
+    
+    
