@@ -135,9 +135,7 @@ class CoEvolutionAgent(Agent):
  
     def __init__(self, color, genome=None, generation=0):
         super().__init__(color)
-        self.genome = dict(genome) if genome else {
-            k: v * random.uniform(0.5, 1.5) for k, v in DEFAULT_WEIGHTS.items()
-        }
+        self.genome = dict(genome) if genome else {k: v * random.uniform(0.5, 1.5) for k, v in DEFAULT_WEIGHTS.items()}
         self.generation = generation
         self.games_played = 0
         self.fitness_history = []  # list of final VP (or win=1/loss=0) per game
@@ -146,7 +144,6 @@ class CoEvolutionAgent(Agent):
         actions = game_state.legal_actions()
         if not actions:
             return None
- 
         best_action, best_score = None, float("-inf")
         for a in actions:
             resulting_state = game_state.apply(a)
@@ -180,5 +177,4 @@ class CoEvolutionAgent(Agent):
         child_genome = {}
         for k in self.genome:
             child_genome[k] = self.genome[k] if random.random() < 0.5 else other.genome[k]
-        return CoEvolutionAgent(self.color, genome=child_genome,
-                                 generation=max(self.generation, other.generation) + 1)
+        return CoEvolutionAgent(self.color, genome=child_genome, generation=max(self.generation, other.generation) + 1)
