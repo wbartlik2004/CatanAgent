@@ -66,22 +66,22 @@ def play2(agents, seed=0, verbose=False):
         gs = rules.apply(gs, action)
     return gs
 
-if __name__ == "__main__":
+'''if __name__ == "__main__":
     seeds = [random.randint(0, 2_000_000_000) for _ in range(1)]
     for seed in seeds:
         agents = [HeuristicAgent(color="red"), HeuristicAgent(color="blue")]
         gs = play2(agents, seed=seed, verbose=True)
         print(f"seed {seed}: winner=P{gs.winner()} "
-              f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")
+              f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
 
-'''if __name__ == "__main__":
-    trainer = CoEvolutionTrainer(population_size=4, n_generations=10, games_per_round=1,
+if __name__ == "__main__":
+    trainer = CoEvolutionTrainer(population_size=4, n_generations=5, games_per_round=1,
                                  elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
-                                 mutation_sigma=0.25, max_actions_per_game=4000, seed=None)
+                                 mutation_sigma=0.25, max_actions_per_game=6000, seed=None)
     trainer.runEvolution(verbose=True)
     print("\n--- Training Complete ---")
     best_weights = trainer.best_genome()
-    print("\nBest Genome Discovered:" + f"\n{best_weights}")'''
+    print("\nBest Genome Discovered:" + f"\n{best_weights}")
     
     
      
