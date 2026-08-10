@@ -28,7 +28,7 @@ class CoEvolutionTrainer:
         self.rng.shuffle(pool)
         groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
         for group in groups:
-            gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True)
+            gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=False)
             winner = gs.winner()
             for idx, agent in enumerate(group):
                 if isinstance(agent, CoEvolutionAgent):
