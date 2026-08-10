@@ -107,4 +107,4 @@ def playEvol(agents, seed=0, verbose=False, max_actions=4000):
             '''print(f"{gs.phase:<16} P{gs.current_player()} {action}")'''
         gs = rules.apply(gs, action)
         actions_taken += 1
-    return gs
+    return gs 
