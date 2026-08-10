@@ -113,7 +113,8 @@ class MCTSAgent:
 
     *big shoutout to github users "ai-boson" and "gist"*
     """
-    def __init__(self, n_simulations, c, rollout_depth, rollout_weights, seed):
+    def __init__(self, player, n_simulations, c, rollout_depth, rollout_weights, seed):
+        self.player = player
         self.n_simulations = n_simulations
         self.c = c
         self.rollout_depth = rollout_depth
