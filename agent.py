@@ -1,6 +1,7 @@
 import math
 import random
 from board import Board
+from eval import _evaluate_action
 from state import GameState, RESOURCES, GAME_OVER
 import rules
 
@@ -120,8 +121,7 @@ class HeuristicAgent(Agent):
 
         best_action, best_score = None, float("-inf")
         for a in actions:
-            resulting_state = rules.apply(game_state, a)
-            score = evaluate_state(resulting_state, player_index, self.weights)
+            score = _evaluate_action(game_state, a, player_index, self.weights)
             if score > best_score:
                 best_action, best_score = a, score
         return best_action
