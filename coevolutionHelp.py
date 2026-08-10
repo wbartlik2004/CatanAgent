@@ -1,0 +1,123 @@
+import random
+import time
+from agent import CoEvolutionAgent, RandomAgent, play_game, sample_chance_outcome, DEFAULT_WEIGHTS
+from board import Board
+import state
+import rules
+
+
+
+class CoEvolutionTrainer:
+    def __init__(self, population_size=8, n_generations=10, games_per_round=1,
+                 elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
+                 mutation_sigma=0.5, max_actions_per_game=4000, seed=None):
+        self.population_size = population_size
+        self.n_generations = n_generations
+        self.games_per_round = games_per_round
+        self.elite_fraction = elite_fraction
+        self.tournament_k = tournament_k
+        self.mutation_rate = mutation_rate
+        self.mutation_sigma = mutation_sigma
+        self.max_actions_per_game = max_actions_per_game
+        self.rng = random.Random(seed)
+        self.generation = 0
+        self.population = []
+        for i in range(population_size):
+            agent = CoEvolutionAgent(f"G0_IND{i}", generation=0)
+            if i > 0:  # Keep agent 0 as pure default, mutate the other 7
+                agent = agent.mutate(rate=mutation_rate, sigma=mutation_sigma)
+            self.population.append(agent)
+        self.history = []  # one summary dict per generation
+
+    '''eval'''
+    def _play_one_round(self):
+        """Shuffle the population into apirs of 2, play one game per, and record fitness for every CoEvolutionAgent"""
+        pool = list(self.population)
+        self.rng.shuffle(pool)
+        groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
+        for group in groups:
+            gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True, max_actions=self.max_actions_per_game)
+            winner = gs.winner()
+            for idx, agent in enumerate(group):
+                if isinstance(agent, CoEvolutionAgent):
+                    agent.record_result(final_vp=gs.victory_points(idx), won=(winner == idx))
+
+    '''select/reproduce'''
+    def _tournament_select(self, ranked):
+        contenders = self.rng.sample(ranked, min(self.tournament_k, len(ranked)))
+        return max(contenders, key=lambda a: a.average_fitness())
+
+    def _next_generation(self):
+        ranked = sorted(self.population, key=lambda a: a.average_fitness(), reverse=True)
+        n_elite = max(1, round(self.elite_fraction * len(ranked)))
+        next_gen = []
+        # Elites carry forward as fresh individuals: same genome, but a clean fitness_history
+        for i, elite in enumerate(ranked[:n_elite]):
+            next_gen.append(CoEvolutionAgent(
+                f"G{self.generation + 1}_ELITE{i}",
+                genome=dict(elite.genome),
+                generation=self.generation + 1,
+            ))
+        while len(next_gen) < self.population_size:
+            parent1 = self._tournament_select(ranked)
+            parent2 = self._tournament_select(ranked)
+            child = parent1.crossover(parent2)
+            child = child.mutate(rate=self.mutation_rate, sigma=self.mutation_sigma)
+            child.color = f"G{self.generation + 1}_IND{len(next_gen)}"
+            next_gen.append(child)
+        self.population = next_gen
+        self.generation += 1
+
+    '''run'''
+    def runEvolution(self, verbose=True):
+        for _ in range(self.n_generations):
+            gen_start = time.perf_counter()
+
+            for _ in range(self.games_per_round):
+                self._play_one_round()
+                print("Game Played")
+            fitnesses = [a.average_fitness() for a in self.population]
+            best = max(self.population, key=lambda a: a.average_fitness())
+            
+            gen_elapsed = time.perf_counter() - gen_start
+
+            stats = {
+                "generation": self.generation,
+                "best_fitness": best.average_fitness(),
+                "mean_fitness": sum(fitnesses) / len(fitnesses),
+                "best_genome": dict(best.genome),
+            } 
+            self.history.append(stats)
+            if verbose:
+                print(f"Gen {stats['generation']:3d} | best={stats['best_fitness']:.2f} "
+                      f"mean={stats['mean_fitness']:.2f} | elapsed={gen_elapsed:.2f}s")
+            self._next_generation()
+        return self.history
+ 
+    def best_genome(self):
+        """The best genome seen across all recorded generations."""
+        if not self.history:
+            return None
+        return max(self.history, key=lambda h: h["best_fitness"])["best_genome"]
+    
+'''Helper Function for running a single game between two CoEvolutionAgents, used by the trainer.'''
+def playEvol(agents, seed=0, verbose=False, max_actions=4000):
+    rng2 = random.Random(seed)
+    n_players = len(agents)
+    gs = state.GameState(Board(), n_players)
+    actions_taken = 0
+    while not gs.is_terminal() and actions_taken < max_actions:
+        if gs.is_chance_node():
+            action = sample_chance_outcome(gs)
+            if action is None:
+                raise RuntimeError(f"no legal chance actions at phase {gs.phase}")
+        else:
+            p = gs.current_player()
+            action = agents[p].choose_action(gs, p)
+            if action is None:
+                raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
+        if verbose:
+            '''print(f"{gs.phase:<16} P{gs.current_player()} {action}")'''
+        gs = rules.apply(gs, action)
+        actions_taken += 1
+    return gs 
