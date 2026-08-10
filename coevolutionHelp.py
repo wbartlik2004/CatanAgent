@@ -1,5 +1,6 @@
 import random
 from agent import CoEvolutionAgent, RandomAgent, play_game
+from main import play2
 
 class CoEvolutionTrainer:
     def __init__(self, population_size=8, n_generations=10, games_per_round=1,
@@ -14,7 +15,6 @@ class CoEvolutionTrainer:
         self.mutation_sigma = mutation_sigma
         self.max_actions_per_game = max_actions_per_game
         self.rng = random.Random(seed)
-
         self.generation = 0
         self.population = [CoEvolutionAgent(f"G0_IND{i}", generation=0) for i in range(population_size)]
         self.history = []  # one summary dict per generation
@@ -26,8 +26,7 @@ class CoEvolutionTrainer:
         self.rng.shuffle(pool)
         groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
         for group in groups:
-            gs = play_game(group, max_actions=self.max_actions_per_game,
-                            seed=self.rng.randint(0, 2_000_000_000))
+            gs = play2(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True)
             winner = gs.winner()
             for idx, agent in enumerate(group):
                 if isinstance(agent, CoEvolutionAgent):
@@ -49,7 +48,6 @@ class CoEvolutionTrainer:
                 genome=dict(elite.genome),
                 generation=self.generation + 1,
             ))
-
         while len(next_gen) < self.population_size:
             parent1 = self._tournament_select(ranked)
             parent2 = self._tournament_select(ranked)
