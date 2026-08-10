@@ -49,12 +49,12 @@ DEFAULT_WEIGHTS = {
     "victory_points": 10.0,
     "settlements": 4.0,
     "cities": 8.0,
-    "roads": 2.0,
-    "resource_total": 0.25,
+    "roads": 3.0,
+    "resource_total": 0.10,
     "dev_cards": 1.0,
     "longest_road_bonus": 2.0,   
     "largest_army_bonus": 2.0,   
-    "resource_diversity": 0.5
+    "resource_diversity": 1.0
 }
 
 def evaluate_state(game_state, player_index, weights=DEFAULT_WEIGHTS):
