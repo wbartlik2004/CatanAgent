@@ -135,7 +135,28 @@ class MCTSAgent:
         - return value_sums dict judging resulting state for each player ind
 
         """
+        depth = 0
+        # i think it will be basically the main.py test runner
+        # oh then I totally should use randonm seeds
+        while not state.is_terminal() and depth < self.rollout_depth:
+            actions = rules.legal_actions(state)
+            if state.is_chance_node():
+                action = self.rng.choices(actions, weights=[a["prob"] for a in actions])[0]
+            else:
+                action = self.rng.choice(actions)
+            state = rules.apply(state, action)
+            depth += 1
 
+        # then for generating the value dicts once rollout_depth reached
+        # for a rollout ending in p0 winning the game we want {p0: 1, p1: 0, p2: 0...}
+        if state.is_terminal():
+            w = rules.winner(state)
+            return {p: (1.0 if w == p else 0.0) for p in range(state.n)}
+
+        # and for a rollout ending at nonterminal state
+        # we'll apply our custom weights, need helper function for now placeholder eval_state
+        else:
+            return {p: evaluate_state(state, p, self.rollout_weights) for p in range(state.n)}
         pass
 
     def _backpropagate(self, node, values):
