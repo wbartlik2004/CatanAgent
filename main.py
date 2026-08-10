@@ -67,7 +67,7 @@ def play2(agents, seed=0, verbose=False):
     return gs
 
 if __name__ == "__main__":
-    for seed in (1, 2):
+    for seed in (1, 10):
         agents = [RandomAgent(color="red", seed=seed), HeuristicAgent(color="blue")]
         gs = play2(agents, seed=seed, verbose=True)
         print(f"seed {seed}: winner=P{gs.winner()} "
