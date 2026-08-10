@@ -76,7 +76,7 @@ def play2(agents, seed=0, verbose=False):
 if __name__ == "__main__":
     trainer = CoEvolutionTrainer(population_size=8, n_generations=10, games_per_round=1,
                                  elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
-                                 mutation_sigma=0.5, max_actions_per_game=500, seed=None)
+                                 mutation_sigma=0.5, max_actions_per_game=1000, seed=None)
     trainer.runEvolution(verbose=True)
     print("\n--- Training Complete ---")
     best_weights = trainer.best_genome()
