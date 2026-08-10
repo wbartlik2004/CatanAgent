@@ -65,6 +65,7 @@ class CoEvolutionTrainer:
         for _ in range(self.n_generations):
             for _ in range(self.games_per_round):
                 self._play_one_round()
+                print("Game Played")
             fitnesses = [a.average_fitness() for a in self.population]
             best = max(self.population, key=lambda a: a.average_fitness())
             stats = {
@@ -103,6 +104,5 @@ def playEvol(agents, seed=0, verbose=False):
                 raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
         if verbose:
             '''print(f"{gs.phase:<16} P{gs.current_player()} {action}")'''
-            print("Game Done")
         gs = rules.apply(gs, action)
     return gs
