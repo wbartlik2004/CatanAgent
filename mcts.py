@@ -16,6 +16,54 @@ import random
 import rules
 import json
 
+# will's default weights (he cheated a little)
+WILL_DEFAULT_WEIGHTS = {
+    "victory_points": 10.0,
+    "settlements": 4.0,
+    "cities": 8.0,
+    "roads": 4,
+    "resource_total": 0.25,
+    "dev_cards": 1,
+    "longest_road_bonus": 2,
+    "largest_army_bonus": 2,
+    "resource_diversity": 0.5,
+}
+
+# jack's default weights
+
+# Will had to tune up some weights (roads) because greedy agent was trash
+# but MCTS looks way further, can set weights to 0 and see how agent reacts
+JACK_DEFAULT_WEIGHTS = {
+    "victory_points": 6.0,
+    "settlements": 4.0,
+    "cities": 8.0,
+    "roads": 2.0,
+    "resource_total": 0.5,
+    "dev_cards": 1.0,
+    "longest_road_bonus": 2,
+    "largest_army_bonus": 2,
+    "resource_diversity": 0.5,
+}
+
+
+
+# so what if we just weight by catan weightings?
+CATAN_DEFAULT_WEIGHTS = {
+    #"victory_points": 10.0,
+    "settlements": 2.0,
+    "cities": 4.0,
+    #"roads": 4,
+    #"resource_total": 0.0,
+    "dev_cards": 0.4, #this ones tough to quantify because dev cards have victory point value
+    # of 1/5 = 2/5 since im doubling, but some dev cards can help more... 0.5
+    "longest_road_bonus": 2,
+    "largest_army_bonus": 2,
+    #"resource_diversity": 0.5,
+}
+
+
+
+
 class Node:
     """
     Each tree ndoe will represent one game state. Each node will need to hold:
