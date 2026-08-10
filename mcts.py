@@ -14,8 +14,7 @@ At each AGENT decision point:
 """
 import random
 import rules
-
-
+import json
 
 class Node:
     """
@@ -39,7 +38,8 @@ class Node:
         self.childen = {}
         self.untried_actions = list(rules.legal_actions(state))
         self.visits = 0
-        self.value_sums =
+        # read backprop; if we want 4 players, we can't just return one value like typical MCTS
+        self.value_sums = {p: 0.0 for p in range(state.n)}
 
     # nedd some identifier for terminal nodes and nodes that have no more untried actions
     def is_fully_expanded(self):
@@ -97,13 +97,72 @@ class MCTSAgent:
         pass
 
     def _expand(self,node):
+        """
+        At a node with untried actions (unexplored children):
+        Pick some untried action
+        Use rules.apply to enact action, go from current game state (node)
+        to next game state (child)
+        Wrap Node(child game state)
+
+        action_key(action) turns action dict to string for hashing purposes
+
+        """
+        if node.is_terminal():
+            return node
+
+        # random action from list of unexplored actions
+        action = self.rng.choice(node.untried_actions)
+
+        # and remove from list
+        node.untried_actions.remove(action)
+
+        # new Node obj out of child
+        child_state = rules.apply(node.state, action)
+        child = Node(child_state, parent=node, action_from_parent=action)
+        #node.children[action] = child
+        node.children[_action_key(action)]
         pass
 
-    def _rollout(self):
+
+
+
+    def _rollout(self, state):
+        """
+        A rollout will output a dict of form value_sums that will be backprogated
+        back up the tree. To do so we need to
+        - take in a state Node
+        - play n actions, n = rollout_depth (or until end of game, <= n)
+        - return value_sums dict judging resulting state for each player ind
+
+        """
+
         pass
 
-    def _backpropagate(self):
-        pass
+    def _backpropagate(self, node, values):
+        """
+        The goal is to make this usable for 4-player games, so we can't just return
+        a value up the tree like typical MCTS. But also I really would like it to mainly
+        be used for 2-player so will still support it.
+
+        Send values dict like {p0: 1.0, p1: 0.0, p2: 0.0} back up tree, adding it to each
+        parent node's respective values dict. Then per player calculations can be made.
+        And in 2-p games the dict will just be {p0: n, p1: -n}
+
+        Backprop will take in values dict output rollout
+        Add to parent's value_sums
+        Move to grandparent
+        Add to grandparent's value_sums...
+        """
+        while node is not None:
+            # update node's visit count
+            node.visits += 1
+
+            # add each player's rollout output score to node's value_sums
+            for p, v in values.items():
+                node.value_sums[p] += v
+            # switch to parent node
+            node = node.parent
+
 
     def _ucb(self, child):
         pass
@@ -112,3 +171,11 @@ class MCTSAgent:
 
 
 
+def _action_key(action):
+        """
+        Helper
+        node.children[action] = child gives errors beacuse action = {"type": "BUILD_ROAD", "edge": (7,8)}
+        dictionaries mutable
+        so need to freeze dictionary; at CST we used json dumps for this
+        """
+        return json.dumps(action, sort_keys=True)
