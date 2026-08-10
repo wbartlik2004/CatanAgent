@@ -85,7 +85,7 @@ class Node:
         self.state = state
         self.parent = parent
         self.action_from_parent = action_from_parent
-        self.childen = {}
+        self.children = {}
         self.untried_actions = list(rules.legal_actions(state))
         self.visits = 0
         # read backprop; if we want 4 players, we can't just return one value like typical MCTS
@@ -138,11 +138,11 @@ class MCTSAgent:
         for _ in range(self.n_simulations):
             node = self._select(root)
             node = self._expand(node)
-            values = self._rollout(node)
-            self._backpropogate(node)
+            values = self._rollout(node.state)
+            self._backpropogate(node, values)
 
-        best = max(root.children.values())
-        return #best action from parent -> bes child
+        best = max(root.children.values(), key=lambda ch: ch.visits)
+        return best.action_from_parent
 
     def _select(self, node):
         """
@@ -152,11 +152,11 @@ class MCTSAgent:
         If node is untried or terminal, we expand it
         """
         # so if we're at a non-terminal node that has untried actions, return that node for expand
+        # and in the case that the node has been expanded, move on to its best child by UCB
+        # will require helper - like ai-boson implementation
         while not node.is_terminal():
             if node.untried_actions:
                 return node
-        # and in the case that the node has been expanded, move on to its best child by UCB
-        # will require helper - like ai-boson implementation
             node = self._best_child(node)
         # and in the case that the node is terminal, we can just return that node for rollout
         return node
@@ -217,8 +217,8 @@ class MCTSAgent:
         child_state = rules.apply(node.state, action)
         child = Node(child_state, parent=node, action_from_parent=action)
         #node.children[action] = child
-        node.children[_action_key(action)]
-        pass
+        node.children[_action_key(action)] = child
+        return child
 
 
 
@@ -293,10 +293,10 @@ class MCTSAgent:
 
 
 def _action_key(action):
-        """
-        Helper
-        node.children[action] = child gives errors beacuse action = {"type": "BUILD_ROAD", "edge": (7,8)}
-        dictionaries mutable
-        so need to freeze dictionary; at CST we used json dumps for this
-        """
-        return json.dumps(action, sort_keys=True)
+    """
+    Helper
+    node.children[action] = child gives errors beacuse action = {"type": "BUILD_ROAD", "edge": (7,8)}
+    dictionaries mutable
+    so need to freeze dictionary; at CST we used json dumps for this
+    """
+    return json.dumps(action, sort_keys=True)
