@@ -64,7 +64,7 @@ class CoEvolutionTrainer:
         self.generation += 1
 
     '''run'''
-    def run(self, verbose=True):
+    def runEvolution(self, verbose=True):
         for _ in range(self.n_generations):
             for _ in range(self.games_per_round):
                 self._play_one_round()
