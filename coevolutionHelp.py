@@ -16,9 +16,7 @@ class CoEvolutionTrainer:
         self.rng = random.Random(seed)
 
         self.generation = 0
-        self.population = [
-            CoEvolutionAgent(f"G0_IND{i}", generation=0) for i in range(population_size)
-        ]
+        self.population = [CoEvolutionAgent(f"G0_IND{i}", generation=0) for i in range(population_size)]
         self.history = []  # one summary dict per generation
 
     '''eval'''
@@ -26,7 +24,6 @@ class CoEvolutionTrainer:
         """Shuffle the population into apirs of 2, play one game per, and record fitness for every CoEvolutionAgent"""
         pool = list(self.population)
         self.rng.shuffle(pool)
-
         groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
         for group in groups:
             gs = play_game(group, max_actions=self.max_actions_per_game,
