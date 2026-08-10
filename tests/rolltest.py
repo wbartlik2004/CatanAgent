@@ -44,4 +44,7 @@ divide value by all
 
 then, no matter the dict, all values will add up to 1
 
+
+also, 2-player doesn't look nearly as 0-sum as I'd like
+because of how I built it for 4 players
 """
