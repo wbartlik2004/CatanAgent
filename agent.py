@@ -54,7 +54,7 @@ DEFAULT_WEIGHTS = {
     "dev_cards": 1.0,
     "longest_road_bonus": 2.0,   
     "largest_army_bonus": 2.0,   
-    "resource_diversity": 1.0
+    "resource_diversity": 0.75
 }
 
 def evaluate_state(game_state, player_index, weights=DEFAULT_WEIGHTS):
