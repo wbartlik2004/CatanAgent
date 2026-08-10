@@ -1,16 +1,7 @@
 from state import RESOURCES, BUILDING_COSTS
+from agent import DEFAULT_WEIGHTS
 
-DEFAULT_WEIGHTS = {
-    "victory_points": 10.0,
-    "settlements": 2.0,
-    "cities": 3.0,
-    "roads": 0.3,
-    "resource_total": 0.2,
-    "resource_diversity": 5,   # number of distinct resource types held
-    "dev_cards": 0.4,
-    "longest_road_bonus": 1.5,   # extra credit for HOLDING longest road
-    "largest_army_bonus": 1.5,   # extra credit for HOLDING largest army
-}
+
 
 def evaluate_state(game_state, player_index, weights=DEFAULT_WEIGHTS):
     s = game_state
