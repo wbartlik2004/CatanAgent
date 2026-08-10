@@ -162,7 +162,7 @@ class CoEvolutionAgent(Agent):
             return 0.0
         return sum(g["vp"] + (5 if g["won"] else 0) for g in self.fitness_history) / len(self.fitness_history)
  
-    def mutate(self, rate=0.2, sigma=0.5):
+    def mutate(self, rate=0.2, sigma=0.25):
         """Return a NEW CoEvolutionAgent with a perturbed genome (doesn't mutate self — evolution should compare parent and child, not
         silently overwrite the parent)."""
         child_genome = dict(self.genome)
