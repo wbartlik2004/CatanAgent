@@ -49,7 +49,7 @@ DEFAULT_WEIGHTS = {
     "victory_points": 10.0,
     "settlements": 4.0,
     "cities": 8.0,
-    "roads": 2.0,
+    "roads": 4.0,
     "resource_total": 0.50,
     "dev_cards": 2.0,
     "longest_road_bonus": 2.0,   

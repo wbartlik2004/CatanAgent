@@ -67,7 +67,7 @@ def play2(agents, seed=0, verbose=False):
     return gs
 
 if __name__ == "__main__":
-    seeds = [random.randint(0, 2_000_000_000) for _ in range(10)]
+    seeds = [random.randint(0, 2_000_000_000) for _ in range(20)]
     for seed in seeds:
         agents = [RandomAgent(color="red", seed=seed), HeuristicAgent(color="blue")]
         gs = play2(agents, seed=seed, verbose=False)
