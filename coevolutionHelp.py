@@ -4,6 +4,18 @@ from board import Board
 import state
 import rules
 
+DEFAULT_GENOME = {
+    "victory_points": 10.0,
+    "settlements": 2.0,
+    "cities": 3.0,
+    "roads": 0.3,
+    "resource_total": 0.2,
+    "resource_diversity": 0.5,   # number of distinct resource types held
+    "dev_cards": 0.4,
+    "longest_road_bonus": 1.5,   # extra credit for HOLDING longest road
+    "largest_army_bonus": 1.5,   # extra credit for HOLDING largest army
+}
+
 class CoEvolutionTrainer:
     def __init__(self, population_size=8, n_generations=10, games_per_round=1,
                  elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
