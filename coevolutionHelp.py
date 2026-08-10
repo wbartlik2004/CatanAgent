@@ -1,4 +1,5 @@
 import random
+import time
 from agent import CoEvolutionAgent, RandomAgent, play_game, sample_chance_outcome, DEFAULT_WEIGHTS
 from board import Board
 import state
@@ -65,11 +66,16 @@ class CoEvolutionTrainer:
     '''run'''
     def runEvolution(self, verbose=True):
         for _ in range(self.n_generations):
+            gen_start = time.perf_counter()
+
             for _ in range(self.games_per_round):
                 self._play_one_round()
                 print("Game Played")
             fitnesses = [a.average_fitness() for a in self.population]
             best = max(self.population, key=lambda a: a.average_fitness())
+            
+            gen_elapsed = time.perf_counter() - gen_start
+
             stats = {
                 "generation": self.generation,
                 "best_fitness": best.average_fitness(),
@@ -79,7 +85,7 @@ class CoEvolutionTrainer:
             self.history.append(stats)
             if verbose:
                 print(f"Gen {stats['generation']:3d} | best={stats['best_fitness']:.2f} "
-                      f"mean={stats['mean_fitness']:.2f}")
+                      f"mean={stats['mean_fitness']:.2f} | elapsed={gen_elapsed:.2f}s")
             self._next_generation()
         return self.history
  

@@ -50,12 +50,12 @@ DEFAULT_WEIGHTS = {
     "settlements": 4.0,
     "cities": 8.0,
     "roads": 1.0,
-    "resource_total": 0.00,
-    "dev_cards": 0.0,
-    "longest_road_bonus": 0.0,   
-    "largest_army_bonus": 0.0,   
-    "resource_diversity": 0.0,
-    "dice_prob": 36
+    "resource_total": 0.5,
+    "dev_cards": 1.0,
+    "longest_road_bonus": 2.0,   
+    "largest_army_bonus": 2.0,   
+    "resource_diversity": 0.25,
+    "dice_prob": 72
 }
 
 def evaluate_state(game_state, player_index, weights=DEFAULT_WEIGHTS):
@@ -175,20 +175,17 @@ class CoEvolutionAgent(Agent):
     def average_fitness(self):
         if not self.fitness_history:
             return 0.0
-        return sum(g["vp"] + (5 if g["won"] else 0) for g in self.fitness_history) / len(self.fitness_history)
+        return sum(g["vp"] for g in self.fitness_history) / len(self.fitness_history)
  
-    def mutate(self, rate=0.2, sigma=0.25):
-        """Return a NEW CoEvolutionAgent with a perturbed genome (doesn't mutate self — evolution should compare parent and child, not
-        silently overwrite the parent)."""
+    def mutate(self, rate=0.3, sigma=0.25):
         child_genome = dict(self.genome)
         for k in child_genome:
             if random.random() < rate:
-                child_genome[k] = max(0.0, child_genome[k] + random.gauss(0, sigma))
+                multiplier = 1 + random.gauss(0, sigma)
+                child_genome[k] = max(0.0, child_genome[k] * multiplier)
         return CoEvolutionAgent(self.color, genome=child_genome, generation=self.generation + 1)
  
     def crossover(self, other):
-        """Uniform crossover: each weight independently comes from self or
-        other. Returns a new offspring CoEvolutionAgent."""
         child_genome = {}
         for k in self.genome:
             child_genome[k] = self.genome[k] if random.random() < 0.5 else other.genome[k]
