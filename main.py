@@ -83,4 +83,4 @@ if __name__ == "__main__":
     print("\nBest Genome Discovered:" + f"\n{best_weights}")
     
     
-    
+     
