@@ -135,7 +135,7 @@ class CoEvolutionAgent(Agent):
  
     def __init__(self, color, genome=None, generation=0):
         super().__init__(color)
-        self.genome = dict(genome) if genome else {k: v * random.uniform(0.5, 1.5) for k, v in DEFAULT_WEIGHTS.items()}
+        self.genome = dict(genome) if genome else {k: v * random.uniform(0.9, 1.1) for k, v in DEFAULT_WEIGHTS.items()}
         self.generation = generation
         self.games_played = 0
         self.fitness_history = []  # list of final VP (or win=1/loss=0) per game
