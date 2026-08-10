@@ -28,7 +28,7 @@ class CoEvolutionTrainer:
         self.rng.shuffle(pool)
         groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
         for group in groups:
-            gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True)
+            gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True, max_actions=self.max_actions_per_game)
             winner = gs.winner()
             for idx, agent in enumerate(group):
                 if isinstance(agent, CoEvolutionAgent):
@@ -88,11 +88,12 @@ class CoEvolutionTrainer:
         return max(self.history, key=lambda h: h["best_fitness"])["best_genome"]
     
 '''Helper Function for running a single game between two CoEvolutionAgents, used by the trainer.'''
-def playEvol(agents, seed=0, verbose=False):
+def playEvol(agents, seed=0, verbose=False, max_actions=4000):
     rng2 = random.Random(seed)
     n_players = len(agents)
     gs = state.GameState(Board(), n_players)
-    while not gs.is_terminal():
+    actions_taken = 0
+    while not gs.is_terminal() and actions_taken < max_actions:
         if gs.is_chance_node():
             action = sample_chance_outcome(gs)
             if action is None:
@@ -105,4 +106,5 @@ def playEvol(agents, seed=0, verbose=False):
         if verbose:
             '''print(f"{gs.phase:<16} P{gs.current_player()} {action}")'''
         gs = rules.apply(gs, action)
+        actions_taken += 1
     return gs
