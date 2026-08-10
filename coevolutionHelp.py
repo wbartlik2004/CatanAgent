@@ -75,7 +75,7 @@ class CoEvolutionTrainer:
                 "best_fitness": best.average_fitness(),
                 "mean_fitness": sum(fitnesses) / len(fitnesses),
                 "best_genome": dict(best.genome),
-            }
+            } 
             self.history.append(stats)
             if verbose:
                 print(f"Gen {stats['generation']:3d} | best={stats['best_fitness']:.2f} "
