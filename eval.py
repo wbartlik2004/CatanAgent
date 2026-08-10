@@ -6,7 +6,7 @@ DEFAULT_WEIGHTS = {
     "cities": 3.0,
     "roads": 0.3,
     "resource_total": 0.2,
-    "resource_diversity": 0.5,   # number of distinct resource types held
+    "resource_diversity": 5,   # number of distinct resource types held
     "dev_cards": 0.4,
     "longest_road_bonus": 1.5,   # extra credit for HOLDING longest road
     "largest_army_bonus": 1.5,   # extra credit for HOLDING largest army
