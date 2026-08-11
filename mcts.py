@@ -51,16 +51,16 @@ JACK_DEFAULT_WEIGHTS = {
 
 # so what if we just weight by catan weightings?
 CATAN_DEFAULT_WEIGHTS = {
-    #"victory_points": 10.0,
+    "victory_points": 10.0,
     "settlements": 2.0,
     "cities": 4.0,
-    #"roads": 4,
-    #"resource_total": 0.0,
+    "roads": 4,
+    "resource_total": 0.2,
     "dev_cards": 0.4, #this ones tough to quantify because dev cards have victory point value
     # of 1/5 = 2/5 since im doubling, but some dev cards can help more... 0.5
     "longest_road_bonus": 2,
     "largest_army_bonus": 2,
-    #"resource_diversity": 0.5,
+    "resource_diversity": 0.5,
 }
 
 
