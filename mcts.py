@@ -139,7 +139,7 @@ class MCTSAgent:
             node = self._select(root)
             node = self._expand(node)
             values = self._rollout(node.state)
-            self._backpropogate(node, values)
+            self._backpropagate(node, values)
 
         best = max(root.children.values(), key=lambda ch: ch.visits)
         return best.action_from_parent
@@ -247,7 +247,7 @@ class MCTSAgent:
         # then for generating the value dicts once rollout_depth reached
         # for a rollout ending in p0 winning the game we want {p0: 1, p1: 0, p2: 0...}
         if state.is_terminal():
-            w = rules.winner(state)
+            w = state.winner()
             return {p: (1.0 if w == p else 0.0) for p in range(state.n)}
 
         # and for a rollout ending at nonterminal state
@@ -284,13 +284,6 @@ class MCTSAgent:
                 node.value_sums[p] += v
             # switch to parent node
             node = node.parent
-
-
-
-
-
-
-
 
 def _action_key(action):
     """

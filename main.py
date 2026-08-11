@@ -1,110 +1,38 @@
 import random
-
-import outcome
-from agent import HeuristicAgent, RandomAgent, sample_chance_outcome
+from agent import HeuristicAgent, RandomAgent, CoEvolutionAgent, sample_chance_outcome
+from mctsCoEvo import CoEvolutionMCTSAgent  
 from board import Board
 from coevolutionHelp import CoEvolutionTrainer, playEvol
 import state
 import rules
-
-def play(seed=0, n_players=2, verbose=False):
-    # replicable randome seed for demo purposes
-    rng = random.Random(seed)
-
-    # starting gamestate initialization
-    gs = state.GameState(Board(), n_players)
-
-    while not gs.is_terminal():
-        # possible actions at every gamestate
-        actions = rules.legal_actions(gs)
-        # bug catching
-        if not actions:
-            raise RuntimeError(f"no legal actions at phase {gs.phase}")
-
-        # for chance nodes we make weighted random choices based on weight associated with random action
-        # be it dice rolls (weighted by prob of rolling #) or steals (wegihted by # of each reasource in victim hand)
-        if gs.is_chance_node():
-            # using random seed for replicability
-            action = rng.choices(actions, weights=[a["prob"] for a in actions])[0]
-        else:
-            ### BASELINE "RANDOM AGENT" that just picks a random choice from those given
-            action = rng.choice(actions)
-        # optional mode to watch game play out via terminal, NOT for running long sims Will
-        if verbose:
-            print(f"{gs.phase:<16} P{gs.current_player()} {action}")
-        # and then we make an apply call that copies gs, makes chosen move, returns gs + action
-        gs = rules.apply(gs, action)
-
-    return gs
-
-'''# testing
-if __name__ == "__main__":
-    for seed in (1, 2):
-        for n in (1, 2):
-            gs = play(seed, n, verbose=True)
-            print(f"seed {seed}: winner=P{gs.winner()} "
-                f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
-
- 
-
-def play2(agents, seed=0, verbose=False):
-    rng2 = random.Random(seed)
-    n_players = len(agents)
-    gs = state.GameState(Board(), n_players)
-    while not gs.is_terminal():
-        if gs.is_chance_node():
-            action = sample_chance_outcome(gs)
-            if action is None:
-                raise RuntimeError(f"no legal chance actions at phase {gs.phase}")
-        else:
-            p = gs.current_player()
-            action = agents[p].choose_action(gs, p)
-            if action is None:
-                raise RuntimeError(f"no legal actions for P{p} at phase {gs.phase}")
-        if verbose:
-            print(f"{gs.phase:<16} P{gs.current_player()} {action}")
-        gs = rules.apply(gs, action)
-    return gs
-
-'''if __name__ == "__main__":
-    seeds = [random.randint(0, 2_000_000_000) for _ in range(1)]
-    for seed in seeds:
-        agents = [HeuristicAgent(color="red"), HeuristicAgent(color="blue")]
-        gs = play2(agents, seed=seed, verbose=True)
-        print(f"seed {seed}: winner=P{gs.winner()} "
-              f"VPs={[gs.victory_points(p) for p in range(gs.n)]}")'''
               
-def evaluate_vs_opponent(best_weights, opponent_type="random", num_games=10):
-    """Evaluates the evolved weights against a specified opponent type across N games."""
+def evaluate_vs_opponent(best_weights, opponent_type="random", num_games=10, agent_factory=None):
+    """Evaluates the evolved weights/genome against a specified opponent type across N games.
+    agent_factory: callable(color, genome) -> Agent, so this works for both
+    HeuristicAgent and CoEvolutionMCTSAgent-style evolved agents."""
+    if agent_factory is None:
+        agent_factory = lambda color, genome: HeuristicAgent(color=color, weights=genome)
     evolved_wins = 0
     evolved_vps = []
     opponent_vps = []
-
     print(f"\n==========================================")
     print(f"   BENCHMARK: Evolved Agent vs {opponent_type.upper()} ({num_games} Games)")
     print(f"==========================================")
-
     for i in range(num_games):
         seed = random.randint(0, 2_000_000_000)
-        # Instantiate Evolved Agent using the best weights
-        evolved_agent = HeuristicAgent(color="Evolved", weights=best_weights)
-        # Instantiate Opponent
+        evolved_agent = agent_factory("Evolved", best_weights)
         if opponent_type.lower() == "random":
             opponent_agent = RandomAgent(color="Random", seed=seed)
         else:
-            # Standard HeuristicAgent uses DEFAULT_WEIGHTS automatically
             opponent_agent = HeuristicAgent(color="StandardHeuristic")
-        # Alternate starting player (P0 vs P1) each game to remove first-player advantage
         if i % 2 == 0:
             agents = [evolved_agent, opponent_agent]
             evolved_idx, opp_idx = 0, 1
         else:
             agents = [opponent_agent, evolved_agent]
             evolved_idx, opp_idx = 1, 0
-        # Play game
-        gs = playEvol(agents, seed=seed, verbose=False, max_actions=2000)
+        gs = playEvol(agents, seed=seed, verbose=False, max_actions=200)
         winner = gs.winner()
-        # Record metrics
         e_vp = gs.victory_points(evolved_idx)
         o_vp = gs.victory_points(opp_idx)
         evolved_vps.append(e_vp)
@@ -116,7 +44,7 @@ def evaluate_vs_opponent(best_weights, opponent_type="random", num_games=10):
             result = "LOSS"
         pos_str = f"P{evolved_idx}"
         print(f"Game {i+1:2d} ({pos_str}): {result} | Evolved VP: {e_vp:2d}  vs  {opponent_type.capitalize()} VP: {o_vp:2d}")
-    # Summary Statistics
+
     win_rate = (evolved_wins / num_games) * 100
     avg_e_vp = sum(evolved_vps) / num_games
     avg_o_vp = sum(opponent_vps) / num_games
@@ -126,26 +54,57 @@ def evaluate_vs_opponent(best_weights, opponent_type="random", num_games=10):
     print(f"  Avg Evolved VP:   {avg_e_vp:.2f}")
     print(f"  Avg Opponent VP:  {avg_o_vp:.2f}")
     print(f"==========================================\n")
-    
-if __name__ == "__main__":
+
+
+def run_greedy_coevolution():
+    print("\n########## GREEDY HEURISTIC CO-EVOLUTION ##########")
     trainer = CoEvolutionTrainer(
-        population_size=16, 
-        n_generations=10, 
-        games_per_round=4,
-        elite_fraction=0.2, 
-        tournament_k=8, 
+        agent_class=CoEvolutionAgent,   # default, but explicit here for clarity
+        population_size=2,
+        n_generations=4,
+        games_per_round=1,
+        elite_fraction=0.2,
+        tournament_k=8,
         mutation_rate=0.35,
-        mutation_sigma=0.25, 
-        max_actions_per_game=600, 
-        seed=None
-    )
+        mutation_sigma=0.25,
+        max_actions_per_game=600,
+        seed=None,)
     trainer.runEvolution(verbose=True)
-    print("\n--- Training Complete ---")
     best_weights = trainer.best_genome()
-    print("\nBest Genome Discovered:")
+    print("\nBest Genome (Greedy):")
     print(best_weights)
-    # 2. Benchmark Benchmark 1: 10 Games vs Random Agent
     evaluate_vs_opponent(best_weights, opponent_type="random", num_games=10)
-    # 3. Benchmark Benchmark 2: 10 Games vs Standard Heuristic Agent
     evaluate_vs_opponent(best_weights, opponent_type="heuristic", num_games=10)
-     
+    return best_weights
+
+def run_mcts_coevolution():
+    print("\n########## MCTS CO-EVOLUTION ##########")
+    trainer = CoEvolutionTrainer(
+        agent_class= CoEvolutionMCTSAgent,
+        agent_kwargs={"n_simulations": 30, "c": 1.4, "rollout_depth": 20},  # kept small -- MCTS is expensive
+        population_size=8,        # smaller population than greedy given the cost
+        n_generations=5,          # fewer generations for the same reason
+        games_per_round=2,
+        elite_fraction=0.2,
+        tournament_k=4,
+        mutation_rate=0.35,
+        mutation_sigma=0.25,
+        max_actions_per_game=600,
+        seed=None,)
+    trainer.runEvolution(verbose=True)
+    best_weights = trainer.best_genome()
+    print("\nBest Genome (MCTS rollout weights):")
+    print(best_weights)
+    mcts_factory = lambda color, genome: CoEvolutionMCTSAgent(color, n_simulations=30, c=1.4, rollout_depth=20, genome=genome)
+    evaluate_vs_opponent(best_weights, opponent_type="random", num_games=10, agent_factory=mcts_factory)
+    evaluate_vs_opponent(best_weights, opponent_type="heuristic", num_games=10, agent_factory=mcts_factory)
+    return best_weights
+
+
+if __name__ == "__main__":
+    mcts_best = run_mcts_coevolution()
+    greedy_best = run_greedy_coevolution()
+    print("\n\n=== FINAL COMPARISON ===")
+    print("Greedy best genome:", greedy_best)
+    print("MCTS best genome:  ", mcts_best)
+    

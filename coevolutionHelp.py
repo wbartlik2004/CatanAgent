@@ -5,12 +5,13 @@ from board import Board
 import state
 import rules
 
-
-
 class CoEvolutionTrainer:
-    def __init__(self, population_size=8, n_generations=10, games_per_round=1,
+    def __init__(self, agent_class=CoEvolutionAgent, agent_kwargs=None,
+                 population_size=8, n_generations=10, games_per_round=1,
                  elite_fraction=0.25, tournament_k=3, mutation_rate=0.2,
                  mutation_sigma=0.5, max_actions_per_game=4000, seed=None):
+        self.agent_class = agent_class
+        self.agent_kwargs = agent_kwargs or {}
         self.population_size = population_size
         self.n_generations = n_generations
         self.games_per_round = games_per_round
@@ -23,7 +24,7 @@ class CoEvolutionTrainer:
         self.generation = 0
         self.population = []
         for i in range(population_size):
-            agent = CoEvolutionAgent(f"G0_IND{i}", generation=0)
+            agent = self.agent_class(f"G0_IND{i}", generation=0, **self.agent_kwargs)
             if i > 0:  # Keep agent 0 as pure default, mutate the other 7
                 agent = agent.mutate(rate=mutation_rate, sigma=mutation_sigma)
             self.population.append(agent)
@@ -31,7 +32,7 @@ class CoEvolutionTrainer:
 
     '''eval'''
     def _play_one_round(self):
-        """Shuffle the population into apirs of 2, play one game per, and record fitness for every CoEvolutionAgent"""
+        """Shuffle the population into pairs of 2, play one game per, and record fitness for every agent that supports it"""
         pool = list(self.population)
         self.rng.shuffle(pool)
         groups = [pool[i:i + 2] for i in range(0, len(pool), 2)]
@@ -39,7 +40,7 @@ class CoEvolutionTrainer:
             gs = playEvol(group, seed=self.rng.randint(0, 2_000_000_000), verbose=True, max_actions=self.max_actions_per_game)
             winner = gs.winner()
             for idx, agent in enumerate(group):
-                if isinstance(agent, CoEvolutionAgent):
+                if hasattr(agent, "record_result"):
                     agent.record_result(final_vp=gs.victory_points(idx), won=(winner == idx))
 
     '''select/reproduce'''
@@ -53,11 +54,11 @@ class CoEvolutionTrainer:
         next_gen = []
         # Elites carry forward as fresh individuals: same genome, but a clean fitness_history
         for i, elite in enumerate(ranked[:n_elite]):
-            next_gen.append(CoEvolutionAgent(
+            next_gen.append(self.agent_class(
                 f"G{self.generation + 1}_ELITE{i}",
                 genome=dict(elite.genome),
                 generation=self.generation + 1,
-            ))
+                **self.agent_kwargs,))
         while len(next_gen) < self.population_size:
             parent1 = self._tournament_select(ranked)
             parent2 = self._tournament_select(ranked)
@@ -78,7 +79,7 @@ class CoEvolutionTrainer:
                 print("Game Played")
             fitnesses = [a.average_fitness() for a in self.population]
             best = max(self.population, key=lambda a: a.average_fitness())
-            
+
             gen_elapsed = time.perf_counter() - gen_start
 
             stats = {
@@ -86,21 +87,21 @@ class CoEvolutionTrainer:
                 "best_fitness": best.average_fitness(),
                 "mean_fitness": sum(fitnesses) / len(fitnesses),
                 "best_genome": dict(best.genome),
-            } 
+            }
             self.history.append(stats)
             if verbose:
                 print(f"Gen {stats['generation']:3d} | best={stats['best_fitness']:.2f} "
                       f"mean={stats['mean_fitness']:.2f} | elapsed={gen_elapsed:.2f}s")
             self._next_generation()
         return self.history
- 
+
     def best_genome(self):
         """The best genome seen across all recorded generations."""
         if not self.history:
             return None
         return max(self.history, key=lambda h: h["best_fitness"])["best_genome"]
-    
-'''Helper Function for running a single game between two CoEvolutionAgents, used by the trainer.'''
+
+'''Helper Function for running a single game between two agents, used by the trainer.'''
 def playEvol(agents, seed=0, verbose=False, max_actions=4000):
     rng2 = random.Random(seed)
     n_players = len(agents)
@@ -120,4 +121,4 @@ def playEvol(agents, seed=0, verbose=False, max_actions=4000):
             '''print(f"{gs.phase:<16} P{gs.current_player()} {action}")'''
         gs = rules.apply(gs, action)
         actions_taken += 1
-    return gs 
+    return gs
