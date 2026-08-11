@@ -285,13 +285,6 @@ class MCTSAgent:
             # switch to parent node
             node = node.parent
 
-
-
-
-
-
-
-
 def _action_key(action):
     """
     Helper

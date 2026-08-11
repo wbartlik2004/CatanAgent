@@ -237,7 +237,7 @@ def _pay(s, player, cost):
 
 def _legal_main(s):
     p = s.current
-    options = [{"type": "END_TURN"}]
+    options: list[dict] = [{"type": "END_TURN"}]
 
     # --- build road ---
     if _can_afford(s, p, BUILDING_COSTS["ROAD"]) and len(_player_roads(s, p)) < PIECE_LIMITS["ROAD"]:
