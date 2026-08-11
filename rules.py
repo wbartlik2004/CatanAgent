@@ -6,18 +6,10 @@ from state import (
     DEV_DRAW, ROAD_BUILDING, GAME_OVER,
 )
 def _vertex_neighbors(s, v):
-    """All vertices adjacent to v via a board edge."""
-    result = set()
-    for a, b in s.board.edges:
-        if a == v:
-            result.add(b)
-        elif b == v:
-            result.add(a)
-    return result
+    return s.board.vertex_neighbors[v]
 
 def _edges_at_vertex(s, v):
-    """All board edges touching v."""
-    return [e for e in s.board.edges if v in e]
+    return s.board.vertex_edges[v]
 
 def _tile_vertices(s, tile_id):
     for t in s.board.tiles:
@@ -359,6 +351,7 @@ def _check_win(s):
     for p in range(s.n):
         if s.victory_points(p) >= VP_TO_WIN:
             s.phase = GAME_OVER
+            s.winner_id = p
             return
 
 def _play_dev(s, action):
@@ -512,4 +505,6 @@ def apply(s, action):
     elif s.phase == ROAD_BUILDING:  _apply_road_building(s, action)
     else:
         raise ValueError(f"Unknown phase: {s.phase}")
+    if s.phase != GAME_OVER:        # don't overwrite a win already set by a handler
+        _check_win(s)
     return s

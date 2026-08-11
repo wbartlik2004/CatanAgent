@@ -100,9 +100,19 @@ class GameState:
         self.setup_index = 0             # position within setup_order
         self.last_setup_vertex = None    # vertex just placed, so SETUP_ROAD knows what to attach to
         self.robber_victim_pending = None  # set by MOVE_ROBBER when a steal is owed, consumed by STEAL
+        self.winner_id = None
+
 
     def copy(self):
         return copy.deepcopy(self)
+
+    def __deepcopy__(self, memo):
+        memo[id(self.board)] = self.board
+        new = self.__class__.__new__(self.__class__)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            setattr(new, k, copy.deepcopy(v, memo))
+        return new
 
     def current_player(self):
         """
@@ -131,10 +141,9 @@ class GameState:
         """
         if not self.is_terminal():
             return None
-        for p in range(self.n):
-            if self.victory_points(p) >= VP_TO_WIN:
-                return p
-        return None
+        return self.winner_id
+
+
 
     def victory_points(self, player):
         """

@@ -83,6 +83,18 @@ class Board:
         self.vertex_coords = dict(VERTEX_COORDS)   # vertex_id -> (x, y), for drawing only
         self.edges = set(EDGES)                    # fixed set of (v1, v2) pairs
         self.tiles = self._generate_tiles()
+        # claude recommended to help game speed
+        self._build_adjacency()
+
+    def _build_adjacency(self):
+        self.vertex_neighbors = {v: set() for v in self.vertices}
+        self.vertex_edges = {v: [] for v in self.vertices}
+        for e in self.edges:
+            a, b = e
+            self.vertex_neighbors[a].add(b)
+            self.vertex_neighbors[b].add(a)
+            self.vertex_edges[a].append(e)
+            self.vertex_edges[b].append(e)
 
     def _generate_tiles(self):
         # Standard tile-type counts, shuffled.
