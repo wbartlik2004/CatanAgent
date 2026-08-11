@@ -1,19 +1,15 @@
 """
 Benchmark: MCTS vs Random over N games.
 
-Produces two figures for the presentation:
-  1. wins.png      -- bar chart, MCTS wins vs Random wins
-  2. cumulative_vp.png -- line chart, cumulative VP over the games (x=game, y=running total)
-
-Seats are rotated (seed % 2) so first-move advantage is averaged out, and wins
-are tallied BY AGENT, not by seat.
+Returns two pngs: Win total per agent, poimt accumulation per agent
+Seats are rotated (seed % 2)
 """
 
 import random
 import time
 
 import matplotlib
-matplotlib.use("Agg")          # no display needed; just save files
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from board import Board
@@ -24,10 +20,10 @@ from randomagent import RandomAgent
 
 
 # ---- config ----
-N = 10
-SIMS = 50
+N = 50
+SIMS = 60
 C = 1.5
-ROLLOUT_DEPTH = 40
+ROLLOUT_DEPTH = 50
 
 
 def play(agents, seed):
