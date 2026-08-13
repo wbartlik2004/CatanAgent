@@ -3,7 +3,7 @@ from coevolutionHelp import playEvol  # Uses your game execution function
 from agent import RandomAgent, HeuristicAgent, CoEvolutionAgent
 from mctsCoEvo import CoEvolutionMCTSAgent
 
-def play_1v1_matchup(agent1, agent2, num_games=10, max_actions=1500, verbose=False):
+def play_1v1_matchup(agent1, agent2, num_games=10, max_actions=2000, verbose=False):
     a1_wins = 0
     a1_win_draws = 0
     a2_wins = 0
@@ -105,13 +105,13 @@ agent_coevo_greedy = CoEvolutionAgent(
 
 agent_coevo_mcts = CoEvolutionMCTSAgent(
     color="MCTSCoEvo",
-    n_simulations=50,    # Number of tree iterations per action choice
+    n_simulations=25,    # Number of tree iterations per action choice
     c=1.4,               # UCT exploration parameter (sqrt(2) ~ 1.41)
-    rollout_depth=40,    # Depth cap for rollouts
+    rollout_depth=5,    # Depth cap for rollouts
     genome=sample_genome
 )
 
 if __name__ == "__main__":
-    play_1v1_matchup(agent_random, agent_coevo_mcts, num_games=30)
+    play_1v1_matchup(agent_coevo_greedy, agent_coevo_mcts, num_games=40)
 
 
